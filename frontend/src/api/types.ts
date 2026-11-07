@@ -166,3 +166,126 @@ export interface VersionConflict {
   id: string
   current: unknown
 }
+
+// ---------------------------------------------------------------------------
+// Datasets and queries (docs/api.md#data, docs/data-layer.md)
+// ---------------------------------------------------------------------------
+
+export type DatasetParamType =
+  'string' | 'string[]' | 'int' | 'float' | 'bool' | 'date' | 'datetime' | 'enum'
+
+export interface DatasetParam {
+  name: string
+  label?: string
+  type: DatasetParamType
+  required: boolean
+  /** Filter dimension this param can bind to (e.g. "tool_id", "time_range.start"). */
+  filter: string | null
+  /** Where a value picker gets its options. */
+  valuesFrom: { dataset: string; column: string } | null
+  /** Allowed values for enums. */
+  values?: string[]
+  /** Default value; datetimes may be relative ("now", "-7d", "-24h"). */
+  default?: unknown
+}
+
+export type ColumnType = 'string' | 'int' | 'float' | 'bool' | 'datetime'
+
+export interface DatasetColumn {
+  name: string
+  type: ColumnType
+  label?: string
+}
+
+export type ComponentKind = 'chart' | 'table' | 'wafer-map' | 'data-preview'
+
+export interface Dataset {
+  id: string
+  label: string
+  category: string
+  description: string
+  params: DatasetParam[]
+  columns: DatasetColumn[]
+  tooltip: string[]
+  suits: ComponentKind[]
+}
+
+export interface ColumnFilter {
+  column: string
+  op: 'contains' | 'equals' | 'notEquals' | 'startsWith' | 'gt' | 'gte' | 'lt' | 'lte' | 'in'
+  value: unknown
+}
+
+export type Shape =
+  | { kind: 'raw'; columns?: string[]; limit: number }
+  | {
+      kind: 'timeseries'
+      x: string
+      y: string[]
+      seriesBy?: string
+      targetPoints: number
+      xRange?: [string, string]
+    }
+  | { kind: 'scatter'; x: string; y: string; colorBy?: string; maxPoints: number }
+  | { kind: 'histogram'; column: string; bins?: number; groupBy?: string }
+  | { kind: 'boxplot'; value: string; groupBy: string; maxOutliers?: number }
+  | {
+      kind: 'table'
+      columns?: string[]
+      offset: number
+      limit: number
+      sort?: { column: string; dir: 'asc' | 'desc' }[]
+      filters?: ColumnFilter[]
+    }
+  | {
+      kind: 'wafer'
+      x: string
+      y: string
+      value: string
+      waferBy?: string
+      mode: 'single' | 'gallery' | 'stacked'
+      aggregate: 'mean' | 'median' | 'std' | 'min' | 'max' | 'count'
+      wafers?: string[]
+    }
+  | { kind: 'distinct'; column: string; search?: string; limit: number }
+
+export interface QueryRequest {
+  dataset: string
+  params: Record<string, unknown>
+  shape: Shape
+  context?: { canvasId?: string; componentId?: string }
+  cache?: 'default' | 'refresh'
+}
+
+export interface QueryMeta {
+  shape: Shape['kind']
+  rowsUpstream: number
+  rowsReturned: number
+  downsampled: boolean
+  cacheHit: boolean
+  asOf: string
+  durationMs: number
+  upstreamMs: number
+  requestId?: string
+  /** table: rows after column filters */
+  totalRows?: number
+  /** histogram: bin edges */
+  edges?: number[]
+  /** wafer: extents and all wafer ids */
+  xRange?: [number, number]
+  yRange?: [number, number]
+  valueRange?: [number, number]
+  wafers?: string[]
+}
+
+/** Columnar result: one array per column, all the same length. */
+export interface QueryResult {
+  columns: { name: string; type: ColumnType | 'unknown' }[]
+  data: Record<string, unknown[]>
+  meta: QueryMeta
+}
+
+export interface ValuesResponse {
+  values: string[]
+  truncated: boolean
+}

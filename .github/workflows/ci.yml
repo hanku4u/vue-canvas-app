@@ -28,6 +28,10 @@ jobs:
       - run: npm run type-check
       - run: npm run test:unit:run
       - run: npm run build-only
+      # E2E tests also start the mock data API (see playwright.config.ts).
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+        working-directory: mock-data-api
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
         env:

@@ -159,7 +159,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Resize handles:** Vue Flow's NodeResizer clamps a node to its minimum whenever it mounts, which fought collapse and expand. Group resizers therefore stay mounted with a header-height minimum, and the 240 × 120 minimum is enforced when a resize ends.
 - **Mock backend:** applies ops in sequence with a snapshot rollback for atomicity.
 
-## F6: Data foundation · M
+## F6: Data foundation · M ✅
 
 **Scope**
 - `GET /api/datasets` store. Dataset picker (grouped by category, filtered by `suits`).
@@ -172,6 +172,15 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - MSW `/api/query` handler backed by the mock data API with basic shaping.
 
 **Done when:** a debug component can pick any dataset, fill params and show the raw result, with every state reachable (latency and failure forced with the mock API's `x-mock-*` headers).
+
+**As built:**
+- **Data preview** (`src/components/data-preview/`) is the debug component. It stays in the palette as a way to explore any dataset.
+- **Data components:** set `dataKind` in their definition. The inspector then shows a **Data** section: a dataset picker grouped by category and filtered by `suits`, plus a parameter form with a widget per type. Datetimes take relative presets (`now`, `-7d`, …, resolved per query, rounded to the minute) or an absolute time. Lists support remote value search (`/values`) or free typing. Parameters show which filter dimension they can follow (wired in F10).
+- **`useComponentQuery`** (`src/data/`): resolves params, waits 250 ms after changes, and keys the cache on dataset + params + shape, so identical queries share a request. It keeps the previous result while refetching, auto-refreshes (off / 1 / 5 / 15 min), and refreshes on demand (fresh `now`, `cache: "refresh"`). It publishes its state to `componentData`, so the frame header can show data age, a refresh button, and "Refresh data" / "View query details" in its menu.
+- **States** (`DataStateView`): unconfigured, missing parameters, loading, refetching (dimmed), empty, and error (code, request ID, Retry).
+- **Arrow:** decoded on demand (`apache-arrow` is lazy-loaded), including dictionary-encoded strings.
+- **Mock:** `/api/datasets`, `/values` and `/api/query` (`src/mocks/handlers/data.ts`, shaping in `src/mocks/shaping.ts`: LTTB, histogram, box plot, wafer, table paging and filters, distinct) call the mock data API through the Vite proxy, with a 5-minute cache. Dev switches: `localStorage['mock.dataLatencyMs']` and `localStorage['mock.dataFail']` are forwarded as `x-mock-*` headers.
+- **E2E:** Playwright now also starts the mock data API (`uv` is needed in CI).
 
 ## F7: Table component · M
 

@@ -40,7 +40,7 @@ export default defineConfig({
     trace: 'on-first-retry',
 
     /* Only on CI systems run the tests headless */
-    headless: !!process.env.CI,
+    headless: true,
   },
 
   /* Target browsers are current Chromium-based ones (Chrome, Edge); see docs/open-questions.md */
@@ -57,15 +57,19 @@ export default defineConfig({
   // outputDir: 'test-results/',
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    /**
-     * Use the dev server by default for faster feedback loop.
-     * Use the preview server on CI for more realistic testing.
-     * Playwright will re-use the local server if there is already a dev-server running.
-     */
-    // The dev server, because it runs with VITE_API_MOCK=1 (MSW) from .env.development.
-    command: 'npm run dev -- --port 5173 --strictPort',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      // The dev server, because it runs with VITE_API_MOCK=1 (MSW) from .env.development.
+      command: 'npm run dev -- --port 5173 --strictPort',
+      port: 5173,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      // The dummy fab data API behind the MSW /api/query handler.
+      command: 'uv --directory ../mock-data-api run mock-data-api',
+      url: 'http://127.0.0.1:8001/health',
+      reuseExistingServer: !process.env.CI,
+      env: { MOCK_LATENCY_MS: '20' },
+    },
+  ],
 })

@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import type { z } from 'zod'
-import type { CanvasComponent } from '@/api/types'
+import type { CanvasComponent, ComponentKind } from '@/api/types'
 
 export type ComponentConfig = Record<string, unknown>
 
@@ -33,6 +33,11 @@ export interface ComponentDefinition<C extends ComponentConfig = ComponentConfig
   inspector?: Component
   /** Shown in the palette (default true). */
   inPalette?: boolean
+  /**
+   * Set for data components: the kind datasets declare in `suits`. The inspector then shows
+   * the dataset picker and parameter form, and config must include `dataset` and `params`.
+   */
+  dataKind?: ComponentKind
 }
 
 /** Props passed to a definition's view, preview and inspector components. */

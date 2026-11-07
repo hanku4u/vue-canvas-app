@@ -8,6 +8,7 @@ import type { ComponentConfig } from '@/registry/types'
 import { MAX_TITLE, useCanvasDocStore } from '@/stores/canvasDoc'
 import { useCanvasUiStore } from '@/stores/canvasUi'
 import { pluralize } from '@/ui/format'
+import DataSourceInspector from './DataSourceInspector.vue'
 import SchemaForm from './SchemaForm.vue'
 
 const store = useCanvasDocStore()
@@ -268,6 +269,18 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
             @update:value="(v) => setGeometry('h', v)"
         /></label>
       </div>
+
+      <template v-if="resolved && definition?.dataKind">
+        <NDivider title-placement="left" class="inspector__divider">Data</NDivider>
+        <DataSourceInspector
+          :component="single"
+          :data-kind="definition.dataKind"
+          :dataset="String(resolved.config.dataset ?? '')"
+          :params="(resolved.config.params as Record<string, unknown>) ?? {}"
+          :editable="editable"
+          @change="(patch) => (configError = store.updateConfig(single!.id, patch))"
+        />
+      </template>
 
       <template v-if="resolved && (fields.length || definition?.inspector)">
         <NDivider title-placement="left" class="inspector__divider">Settings</NDivider>

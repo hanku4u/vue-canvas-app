@@ -32,7 +32,7 @@ function onDragStart(event: DragEvent, type: string): void {
       </template>
       {{ item.description }} Click to add, or drag onto the canvas.
     </NTooltip>
-    <p class="palette__soon">Chart, table and wafer map arrive with the data components (F6–F9).</p>
+    <p class="palette__soon">Chart, table and wafer map arrive in F7–F9.</p>
   </nav>
 </template>
 

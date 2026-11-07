@@ -56,12 +56,16 @@ function isErrorBody(value: unknown): value is ApiErrorBody {
   return typeof value === 'object' && value !== null && 'error' in value
 }
 
-export async function apiFetch<T>(
+/**
+ * Send a request and return the raw Response once it is known to be successful.
+ * Non-2xx responses throw ApiError (with the docs/api.md#errors envelope).
+ */
+export async function apiFetchResponse(
   method: Method,
   path: string,
   body?: unknown,
   options: RequestOptions = {},
-): Promise<T> {
+): Promise<Response> {
   const headers: Record<string, string> = { accept: 'application/json', ...options.headers }
   if (body !== undefined) headers['content-type'] = 'application/json'
   const devKnoxId = getDevKnoxId()
@@ -80,13 +84,10 @@ export async function apiFetch<T>(
     throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server')
   }
 
-  const requestId = response.headers.get('x-request-id') ?? undefined
-  if (response.status === 204) return undefined as T
-
-  const text = await response.text()
-  const json = text ? parseJson(text) : undefined
-
   if (!response.ok) {
+    const requestId = response.headers.get('x-request-id') ?? undefined
+    const text = await response.text()
+    const json = text ? parseJson(text) : undefined
     const err = isErrorBody(json) ? json.error : undefined
     throw new ApiError(
       response.status,
@@ -96,7 +97,19 @@ export async function apiFetch<T>(
       err?.details,
     )
   }
-  return json as T
+  return response
+}
+
+export async function apiFetch<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await apiFetchResponse(method, path, body, options)
+  if (response.status === 204) return undefined as T
+  const text = await response.text()
+  return (text ? parseJson(text) : undefined) as T
 }
 
 export const api = {

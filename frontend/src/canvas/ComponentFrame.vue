@@ -9,6 +9,8 @@ import {
   Copy,
   Ellipsis,
   Lock,
+  RotateCw,
+  SearchCode,
   Trash,
   TriangleExclamationPoint,
 } from '@lucide/vue'
@@ -16,6 +18,10 @@ import { getDefinition, resolveConfig } from '@/registry/registry'
 import type { ComponentConfig } from '@/registry/types'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
 import { useCanvasUiStore } from '@/stores/canvasUi'
+import { useComponentDataStore } from '@/stores/componentData'
+import { formatDateTime } from '@/ui/format'
+import { shortAge, useNow } from '@/ui/useNow'
+import QueryDetailsDialog from './QueryDetailsDialog.vue'
 import { menuLabel } from '@/ui/menuLabel'
 import { MIN_SIZE, snapRect } from './geometry'
 import { useLevelOfDetail } from './lod'
@@ -34,6 +40,13 @@ const props = defineProps<{
 const store = useCanvasDocStore()
 const ui = useCanvasUiStore()
 const lod = useLevelOfDetail()
+const dataStore = useComponentDataStore()
+const now = useNow()
+
+/** Query state published by data components (useComponentQuery). */
+const dataInfo = computed(() => dataStore.byId.get(props.id))
+const dataAge = computed(() => shortAge(dataInfo.value?.meta?.asOf, now.value))
+const showDetails = ref(false)
 
 const component = computed(() => store.components[props.data.componentId])
 const definition = computed(() =>
@@ -118,6 +131,13 @@ function icon(c: Component) {
 
 const menu = computed<DropdownOption[]>(() => {
   const items: DropdownOption[] = []
+  if (dataInfo.value) {
+    items.push(
+      { key: 'refresh', label: menuLabel('Refresh data', { hint: 'R' }), icon: icon(RotateCw) },
+      { key: 'details', label: menuLabel('View query details'), icon: icon(SearchCode) },
+      { key: 'd0', type: 'divider' },
+    )
+  }
   if (store.canEdit)
     items.push({
       key: 'duplicate',
@@ -144,6 +164,8 @@ const menu = computed<DropdownOption[]>(() => {
 })
 
 function onMenu(key: string): void {
+  if (key === 'refresh') dataInfo.value?.refresh()
+  if (key === 'details') showDetails.value = true
   if (key === 'duplicate') store.duplicateComponents([props.id])
   if (key === 'front') store.bringToFront([props.id])
   if (key === 'back') store.sendToBack([props.id])
@@ -173,6 +195,29 @@ function onMenu(key: string): void {
         <component :is="definition?.icon ?? CircleQuestionMark" />
       </NIcon>
       <span class="frame__title" :title="component.title">{{ component.title }}</span>
+      <NTooltip v-if="dataInfo && (dataAge || dataInfo.fetching)">
+        <template #trigger>
+          <NButton
+            text
+            size="tiny"
+            class="frame__age nodrag"
+            :class="{ 'is-fetching': dataInfo.fetching }"
+            aria-label="Refresh data"
+            data-testid="frame-refresh"
+            @click.stop="dataInfo.refresh()"
+          >
+            <template #icon>
+              <NIcon :size="12"><RotateCw /></NIcon>
+            </template>
+            <span data-testid="frame-age">{{ dataAge }}</span>
+          </NButton>
+        </template>
+        <template v-if="dataInfo.meta">
+          Data from {{ formatDateTime(dataInfo.meta.asOf)
+          }}{{ dataInfo.meta.cacheHit ? ' (cached)' : '' }}. Click to refresh.
+        </template>
+        <template v-else>Loading…</template>
+      </NTooltip>
       <NTooltip v-if="restricted || !editable">
         <template #trigger>
           <span class="frame__marker" data-testid="frame-lock">
@@ -184,6 +229,12 @@ function onMenu(key: string): void {
         <template v-else-if="!editable">You can view this canvas but not change it.</template>
         <template v-else>Access to this component is restricted.</template>
       </NTooltip>
+      <QueryDetailsDialog
+        v-if="dataInfo"
+        v-model:show="showDetails"
+        :title="component.title"
+        :info="dataInfo"
+      />
       <NDropdown
         v-if="menu.length"
         trigger="click"
@@ -289,6 +340,22 @@ function onMenu(key: string): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.frame__age {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--app-text-muted);
+}
+
+.frame__age.is-fetching :deep(.n-icon) {
+  animation: frame-spin 0.9s linear infinite;
+}
+
+@keyframes frame-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .frame__marker {
