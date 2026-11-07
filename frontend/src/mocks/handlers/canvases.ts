@@ -1,4 +1,4 @@
-import { http } from 'msw'
+import { http, HttpResponse } from 'msw'
 import type {
   Canvas,
   CanvasComponent,
@@ -16,6 +16,7 @@ import {
   getDb,
   isAdmin,
   newId,
+  opsFailureMode,
   saveDb,
   userRef,
   type MockCanvas,
@@ -142,10 +143,53 @@ function readJson<T>(request: Request): Promise<T | null> {
 // ---------------------------------------------------------------------------
 
 type OpOutcome =
-  | { kind: 'ok'; apply: () => void }
+  | { kind: 'ok'; apply: () => [id: string, version: number] | void }
   | { kind: 'conflict'; id: string; current: unknown }
   | { kind: 'denied' }
   | { kind: 'invalid'; message: string }
+
+const EDITABLE_COMPONENT_FIELDS = new Set([
+  'title',
+  'groupId',
+  'x',
+  'y',
+  'w',
+  'h',
+  'zIndex',
+  'config',
+  'configVersion',
+])
+
+/** Validate editable component fields; returns an error message or null. */
+function invalidComponentFields(fields: Record<string, unknown>): string | null {
+  for (const [key, value] of Object.entries(fields)) {
+    if (!EDITABLE_COMPONENT_FIELDS.has(key)) return `Field '${key}' cannot be set`
+    if (['x', 'y', 'w', 'h', 'zIndex', 'configVersion'].includes(key)) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return `'${key}' must be a number`
+    }
+    if ((key === 'w' || key === 'h') && (value as number) <= 0) return `'${key}' must be positive`
+    if (key === 'title' && validTitle(value) === null) return 'Invalid title'
+    if (key === 'config' && (typeof value !== 'object' || value === null || Array.isArray(value))) {
+      return "'config' must be an object"
+    }
+    if (key === 'groupId' && value !== null && typeof value !== 'string') return 'Invalid groupId'
+  }
+  return null
+}
+
+/**
+ * The component an op refers to, if it exists on this canvas and the caller can see it.
+ * Anything else is reported as a conflict with `current: null` ("it's gone"), so the
+ * client can drop or re-create it (docs/api.md).
+ */
+function targetComponent(knoxId: string, canvas: MockCanvas, id: string): MockComponent | null {
+  const component = getDb().components[id]
+  return component &&
+    component.canvasId === canvas.id &&
+    canViewComponent(knoxId, canvas, component)
+    ? component
+    : null
+}
 
 function checkOp(knoxId: string, canvas: MockCanvas, op: CanvasOp, now: string): OpOutcome {
   switch (op.op) {
@@ -168,11 +212,86 @@ function checkOp(knoxId: string, canvas: MockCanvas, op: CanvasOp, now: string):
           if (defaultFilters !== undefined) canvas.defaultFilters = defaultFilters
           canvas.version += 1
           canvas.updatedAt = now
+          return ['canvas', canvas.version]
+        },
+      }
+    }
+    case 'component.create': {
+      if (!canEditCanvas(knoxId, canvas)) return { kind: 'denied' }
+      const { id, type, ...fields } = op.component ?? ({} as typeof op.component)
+      if (typeof id !== 'string' || !id || typeof type !== 'string' || !type) {
+        return { kind: 'invalid', message: 'component.create needs an id and a type' }
+      }
+      if (getDb().components[id])
+        return { kind: 'invalid', message: `Component ${id} already exists` }
+      const problem = invalidComponentFields(fields)
+      if (problem) return { kind: 'invalid', message: problem }
+      return {
+        kind: 'ok',
+        apply: () => {
+          getDb().components[id] = {
+            id,
+            canvasId: canvas.id,
+            type,
+            title: fields.title,
+            groupId: fields.groupId ?? null,
+            x: fields.x,
+            y: fields.y,
+            w: fields.w,
+            h: fields.h,
+            zIndex: fields.zIndex,
+            config: fields.config ?? {},
+            configVersion: fields.configVersion ?? 1,
+            viewRestricted: false,
+            editRestricted: false,
+            version: 1,
+            createdBy: knoxId,
+            updatedBy: knoxId,
+            createdAt: now,
+            updatedAt: now,
+          }
+          return [id, 1]
+        },
+      }
+    }
+    case 'component.update': {
+      const component = targetComponent(knoxId, canvas, op.id)
+      if (!component) return { kind: 'conflict', id: op.id, current: null }
+      if (!canEditComponent(knoxId, canvas, component)) return { kind: 'denied' }
+      if (op.version !== component.version) {
+        return { kind: 'conflict', id: op.id, current: toComponent(knoxId, canvas, component) }
+      }
+      const problem = invalidComponentFields(op.set ?? {})
+      if (problem) return { kind: 'invalid', message: problem }
+      return {
+        kind: 'ok',
+        apply: () => {
+          Object.assign(component, op.set)
+          component.version += 1
+          component.updatedBy = knoxId
+          component.updatedAt = now
+          return [component.id, component.version]
+        },
+      }
+    }
+    case 'component.delete': {
+      const component = targetComponent(knoxId, canvas, op.id)
+      if (!component) return { kind: 'conflict', id: op.id, current: null }
+      if (!canEditComponent(knoxId, canvas, component)) return { kind: 'denied' }
+      if (op.version !== component.version) {
+        return { kind: 'conflict', id: op.id, current: toComponent(knoxId, canvas, component) }
+      }
+      return {
+        kind: 'ok',
+        apply: () => {
+          const db = getDb()
+          delete db.components[component.id]
+          db.acl = db.acl.filter((a) => a.componentId !== component.id)
         },
       }
     }
     default:
-      // Component and group ops arrive with the canvas editor (roadmap F4/F5).
+      // Group ops arrive with groups (roadmap F5).
       return { kind: 'invalid', message: `Op '${op.op}' is not supported by the mock yet` }
   }
 }
@@ -263,6 +382,11 @@ export const canvasHandlers = [
   http.post('/api/canvases/:id/ops', async ({ request, params }) => {
     const user = identify(request)
     if (!user) return apiError(401, 'UNAUTHENTICATED', 'Missing x-knox-id')
+    const failure = opsFailureMode()
+    if (failure === 'network') return HttpResponse.error()
+    if (failure && /^\d{3}$/.test(failure)) {
+      return apiError(Number(failure), 'SIMULATED_FAILURE', 'Simulated failure (mock.failOps)')
+    }
     const canvas = findViewable(user.knoxId, String(params.id))
     if (!canvas) return apiError(404, 'NOT_FOUND', 'Canvas not found')
     const body = await readJson<OpsRequest>(request)
@@ -289,11 +413,16 @@ export const canvasHandlers = [
       return apiError(409, 'VERSION_CONFLICT', 'Changed by someone else', { conflicts })
     }
 
-    for (const outcome of outcomes) if (outcome.kind === 'ok') outcome.apply()
+    const versions: Record<string, number> = {}
+    for (const outcome of outcomes) {
+      if (outcome.kind !== 'ok') continue
+      const entry = outcome.apply()
+      if (entry) versions[entry[0]] = entry[1]
+    }
     canvas.revision += 1
     canvas.updatedAt = now
     saveDb()
-    return ok<OpsResult>({ revision: canvas.revision, versions: { canvas: canvas.version } })
+    return ok<OpsResult>({ revision: canvas.revision, versions })
   }),
 
   http.delete('/api/canvases/:id', ({ request, params }) => {

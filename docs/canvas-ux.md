@@ -155,7 +155,7 @@ The filter bar and group headers show filter chips. Full resolution rules are in
 | `Offline – retrying` | Network error. Edits are kept locally and retried with backoff |
 | `Conflict` | Someone changed the same component. Click to resolve |
 
-Conflict dialog: shows the component with "theirs" and "mine" and lets you **keep theirs** (discard your change) or **reapply mine** (send your change on top of their version). Since conflicts are per component, unrelated edits by two people never conflict.
+Conflict dialog: lists the conflicting components (who changed them and when) and lets you **keep theirs** (discard your change) or **reapply mine** (send your change on top of their version). The choice applies to all listed components. Since conflicts are per component, unrelated edits by two people never conflict.
 
 Other people's changes appear when you reload or come back to the tab (refetch on focus). Live updates are out of scope for v1.
 

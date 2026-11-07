@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// Canvas editor: loads the canvas into the document store and renders the infinite canvas.
-// F2: edits are local only; saving through ops arrives in F4.
-import { computed, h, ref, watch, type Component } from 'vue'
-import { useRouter } from 'vue-router'
+// Canvas editor: loads the canvas into the document store (which saves edits through ops),
+// and lays out palette, canvas and inspector.
+import { computed, h, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import {
   NButton,
   NDropdown,
@@ -11,22 +11,25 @@ import {
   NSpin,
   NTag,
   NTooltip,
+  useMessage,
   type DropdownOption,
 } from 'naive-ui'
-import { ArrowLeft, Copy, Ellipsis, Pencil, Trash } from '@lucide/vue'
+import { ArrowLeft, Copy, Ellipsis, Pencil, Redo2, Trash, Undo2, Users } from '@lucide/vue'
 import { useCanvas } from '@/api/canvases'
 import { ApiError } from '@/api/client'
 import DefaultLayout from '@/app/layout/DefaultLayout.vue'
 import CanvasView from '@/canvas/CanvasView.vue'
-import { registerBuiltInComponents } from '@/components'
+import ConflictDialog from '@/canvas/ConflictDialog.vue'
 import InspectorPanel from '@/canvas/InspectorPanel.vue'
 import PalettePanel from '@/canvas/PalettePanel.vue'
+import SaveStatus from '@/canvas/SaveStatus.vue'
 import SidePanel from '@/canvas/SidePanel.vue'
+import { registerBuiltInComponents } from '@/components'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
 import CanvasNameDialog from '@/ui/canvases/CanvasNameDialog.vue'
 import { canvasCan, roleLabel } from '@/ui/canvases/permissions'
 import { useCanvasActions } from '@/ui/canvases/useCanvasActions'
-import { describeError } from '@/ui/useApiErrorNotifier'
+import { describeError, useApiErrorNotifier } from '@/ui/useApiErrorNotifier'
 import StatusPage from './StatusPage.vue'
 
 const props = defineProps<{ id: string }>()
@@ -35,18 +38,22 @@ const props = defineProps<{ id: string }>()
 registerBuiltInComponents()
 
 const router = useRouter()
+const message = useMessage()
+const notifyError = useApiErrorNotifier()
 const canvas = useCanvas(() => props.id)
 const actions = useCanvasActions({ onDeleted: () => void router.push({ name: 'home' }) })
 
 const store = useCanvasDocStore()
 const canvasView = ref<InstanceType<typeof CanvasView> | null>(null)
 
-// Load into the store when a canvas opens. Later refetches (e.g. after a rename) must not
-// overwrite local edits, so only (re)load when the canvas id changes.
+// First load replaces the document; later refetches (window focus, after a rename) are
+// merged, keeping components with unsaved local edits.
 watch(
   () => canvas.data.value,
   (value) => {
-    if (value && store.canvas?.id !== value.id) store.load(value)
+    if (!value) return
+    if (store.canvas?.id !== value.id) store.load(value)
+    else store.mergeRemote(value)
   },
   { immediate: true },
 )
@@ -57,9 +64,61 @@ const notFound = computed(
   () => canvas.error.value instanceof ApiError && canvas.error.value.status === 404,
 )
 
+// ---------------------------------------------------------------------------
+// Saving: conflicts, refusals, leaving the page
+// ---------------------------------------------------------------------------
+
+const showConflict = ref(false)
+watch(
+  () => store.conflicts.length,
+  (count) => {
+    showConflict.value = count > 0
+  },
+)
+
+async function reloadFromServer(): Promise<void> {
+  const { data } = await canvas.refetch()
+  if (data) store.load(data)
+}
+
+watch(
+  () => store.rejection,
+  (error) => {
+    if (!error) return
+    notifyError('Your last changes could not be saved', error)
+    void reloadFromServer()
+  },
+)
+
+function retrySave(): void {
+  if (store.saveStatus === 'error') void reloadFromServer()
+  else void store.flush()
+}
+
+onBeforeRouteLeave(async () => {
+  await store.flush()
+  if (store.dirty) {
+    return window.confirm('Some changes are not saved yet. Leave anyway?')
+  }
+  return true
+})
+
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  if (store.dirty) event.preventDefault()
+}
+
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+
+// ---------------------------------------------------------------------------
+// Canvas menu
+// ---------------------------------------------------------------------------
+
 function icon(component: Component) {
   return () => h(NIcon, null, { default: () => h(component, { size: 16 }) })
 }
+
+const isMockApi = import.meta.env.VITE_API_MOCK === '1'
 
 const menu = computed<DropdownOption[]>(() => {
   const role = canvas.data.value?.role
@@ -68,15 +127,34 @@ const menu = computed<DropdownOption[]>(() => {
   if (canvasCan.edit(role)) items.push({ key: 'rename', label: 'Rename', icon: icon(Pencil) })
   items.push({ key: 'duplicate', label: 'Duplicate', icon: icon(Copy) })
   if (canvasCan.delete(role)) items.push({ key: 'delete', label: 'Delete', icon: icon(Trash) })
+  if (isMockApi) {
+    items.push(
+      { key: 'd-dev', type: 'divider' },
+      { key: 'simulate-edit', label: 'Simulate edit by another user (dev)', icon: icon(Users) },
+    )
+  }
   return items
 })
 
-function onMenu(key: string): void {
+async function onMenu(key: string): Promise<void> {
   const value = canvas.data.value
   if (!value) return
   if (key === 'rename') actions.startRename(value)
-  if (key === 'duplicate') actions.startDuplicate(value)
+  if (key === 'duplicate') {
+    // The copy is made on the server: save pending edits first so they're included.
+    await store.flush()
+    actions.startDuplicate(value)
+  }
   if (key === 'delete') actions.confirmDelete(value)
+  if (key === 'simulate-edit' && import.meta.env.VITE_API_MOCK === '1') {
+    const { simulateRemoteEdit } = await import('@/mocks/devTools')
+    const title = simulateRemoteEdit(value.id)
+    message.info(
+      title
+        ? `k.lee moved “${title}” on the server. Edit it here to see a conflict, or refocus the tab to merge.`
+        : 'Nothing to change: this canvas has no saved components yet.',
+    )
+  }
 }
 
 function back(): void {
@@ -101,14 +179,52 @@ function back(): void {
       <template v-if="canvas.data.value">
         <h1 class="editor__title" data-testid="canvas-title">{{ canvas.data.value.title }}</h1>
         <NTag size="small" :bordered="false">{{ roleLabel[canvas.data.value.role] }}</NTag>
-        <NTooltip v-if="store.dirty">
-          <template #trigger>
-            <NTag size="small" type="warning" :bordered="false" data-testid="unsaved-tag">
-              Not saved
-            </NTag>
-          </template>
-          Layout changes are local to this tab for now. Saving arrives in roadmap milestone F4.
-        </NTooltip>
+        <template v-if="ready && store.canEdit">
+          <div class="editor__history">
+            <NTooltip>
+              <template #trigger>
+                <NButton
+                  quaternary
+                  circle
+                  size="small"
+                  aria-label="Undo"
+                  data-testid="undo"
+                  :disabled="!store.canUndo"
+                  @click="store.undo()"
+                >
+                  <template #icon>
+                    <NIcon><Undo2 /></NIcon>
+                  </template>
+                </NButton>
+              </template>
+              Undo (Ctrl/⌘ + Z)
+            </NTooltip>
+            <NTooltip>
+              <template #trigger>
+                <NButton
+                  quaternary
+                  circle
+                  size="small"
+                  aria-label="Redo"
+                  data-testid="redo"
+                  :disabled="!store.canRedo"
+                  @click="store.redo()"
+                >
+                  <template #icon>
+                    <NIcon><Redo2 /></NIcon>
+                  </template>
+                </NButton>
+              </template>
+              Redo (Ctrl/⌘ + Shift + Z)
+            </NTooltip>
+          </div>
+          <SaveStatus
+            :status="store.saveStatus"
+            :error="store.rejection?.message"
+            @open-conflict="showConflict = true"
+            @retry="retrySave"
+          />
+        </template>
       </template>
     </template>
     <template #top-right>
@@ -164,6 +280,11 @@ function back(): void {
       :loading="actions.dialog.loading"
       @submit="actions.submitDialog"
     />
+    <ConflictDialog
+      v-model:show="showConflict"
+      :conflicts="store.conflicts"
+      @resolve="store.resolveConflicts"
+    />
   </DefaultLayout>
 </template>
 
@@ -190,9 +311,14 @@ function back(): void {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  max-width: 40vw;
+  max-width: 32vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.editor__history {
+  display: flex;
+  margin-left: 4px;
 }
 </style>

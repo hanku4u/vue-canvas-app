@@ -63,13 +63,16 @@ async function asUser(page: Page, knoxId: string): Promise<void> {
 test('adds placeholders from the context menu', async ({ page }) => {
   await openCanvas(page, EMPTY)
   await expect(page.getByTestId('canvas-empty')).toBeVisible()
-  await expect(page.getByTestId('unsaved-tag')).toHaveCount(0)
+  await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved')
 
   await addPlaceholder(page, 200, 150)
   await expect(nodes(page)).toHaveCount(1)
   await expect(selected(page)).toHaveCount(1)
   await expect(page.getByTestId('canvas-empty')).toHaveCount(0)
-  await expect(page.getByTestId('unsaved-tag')).toBeVisible()
+  // Saved automatically shortly after the edit.
+  await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved')
+  await page.reload()
+  await expect(nodes(page)).toHaveCount(1)
 })
 
 test('drags snap to the 16px grid unless Alt is held', async ({ page }) => {
@@ -241,7 +244,7 @@ test('viewers can look but not move or add', async ({ page }) => {
   const before = await offset(target, reference)
   await dragBy(page, target, 120, 80)
   expect(await offset(target, reference)).toEqual(before)
-  await expect(page.getByTestId('unsaved-tag')).toHaveCount(0)
+  await expect(page.getByTestId('save-status')).toHaveCount(0)
 
   const origin = await pane(page)
   await page.mouse.click(origin.x + 5, origin.y + origin.height - 5, { button: 'right' })

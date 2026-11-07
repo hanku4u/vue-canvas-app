@@ -15,6 +15,9 @@ import { getDb, newId, resetDb, saveDb } from '@/mocks/db'
 
 const server = setupServer(...handlers)
 
+const EMPTY = 'c-yield-review'
+const SEEDED = 'c-et03-excursion'
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 beforeEach(() => {
   localStorage.clear()
@@ -185,5 +188,117 @@ describe('duplicate', () => {
     expect(copy).toMatchObject({ title: 'My copy', role: 'owner', owner: { knoxId: 'm.park' } })
     expect(copy.components.map((c) => c.title).sort()).toEqual(['locked', 'open'])
     expect(copy.components.every((c) => !c.access.editRestricted && c.access.canEdit)).toBe(true)
+  })
+})
+
+describe('component ops', () => {
+  const newNote = (id: string) => ({
+    id,
+    type: 'note',
+    title: 'Note',
+    groupId: null,
+    x: 0,
+    y: 0,
+    w: 288,
+    h: 192,
+    zIndex: 9,
+    config: { markdown: 'hi' },
+    configVersion: 1,
+  })
+
+  it('creates, updates and deletes with versions', async () => {
+    as('j.doe')
+    const created = await applyOps(EMPTY, [{ op: 'component.create', component: newNote('n1') }])
+    expect(created.versions).toEqual({ n1: 1 })
+
+    const moved = await applyOps(EMPTY, [
+      { op: 'component.update', id: 'n1', version: 1, set: { x: 64, title: 'Moved' } },
+    ])
+    expect(moved.versions).toEqual({ n1: 2 })
+    expect((await getCanvas(EMPTY)).components[0]).toMatchObject({
+      id: 'n1',
+      x: 64,
+      title: 'Moved',
+      version: 2,
+      updatedBy: 'j.doe',
+    })
+
+    await applyOps(EMPTY, [{ op: 'component.delete', id: 'n1', version: 2 }])
+    expect((await getCanvas(EMPTY)).components).toEqual([])
+    // Re-creating a deleted id is allowed (undo of a delete).
+    await applyOps(EMPTY, [{ op: 'component.create', component: newNote('n1') }])
+  })
+
+  it('reports stale versions and missing components as conflicts', async () => {
+    as('j.doe')
+    await applyOps(EMPTY, [{ op: 'component.create', component: newNote('n1') }])
+    await applyOps(EMPTY, [{ op: 'component.update', id: 'n1', version: 1, set: { x: 16 } }])
+
+    const stale = await apiErrorOf(
+      applyOps(EMPTY, [{ op: 'component.update', id: 'n1', version: 1, set: { x: 32 } }]),
+    )
+    expect(stale).toMatchObject({ status: 409, code: 'VERSION_CONFLICT' })
+    expect(stale.details).toMatchObject({
+      conflicts: [{ opIndex: 0, id: 'n1', current: { id: 'n1', x: 16, version: 2 } }],
+    })
+
+    const gone = await apiErrorOf(
+      applyOps(EMPTY, [{ op: 'component.delete', id: 'nope', version: 1 }]),
+    )
+    expect(gone.details).toMatchObject({ conflicts: [{ id: 'nope', current: null }] })
+  })
+
+  it('applies batches atomically', async () => {
+    as('j.doe')
+    const error = await apiErrorOf(
+      applyOps(EMPTY, [
+        { op: 'component.create', component: newNote('n1') },
+        { op: 'component.update', id: 'missing', version: 1, set: { x: 1 } },
+      ]),
+    )
+    expect(error.status).toBe(409)
+    expect((await getCanvas(EMPTY)).components).toEqual([])
+  })
+
+  it('enforces component permissions per op', async () => {
+    // k.lee is an editor on the seeded canvas; component p3 is edit-restricted.
+    as('k.lee')
+    const canvas = await getCanvas(SEEDED)
+    const locked = canvas.components.find((c) => c.id === 'c-et03-excursion-p3')!
+    const open = canvas.components.find((c) => c.id === 'c-et03-excursion-p2')!
+    expect(locked.access.canEdit).toBe(false)
+
+    const denied = await apiErrorOf(
+      applyOps(SEEDED, [
+        { op: 'component.update', id: open.id, version: open.version, set: { x: 1 } },
+        { op: 'component.update', id: locked.id, version: locked.version, set: { x: 1 } },
+      ]),
+    )
+    expect(denied).toMatchObject({ status: 403, details: { deniedOps: [1] } })
+
+    as('m.park')
+    const viewer = await apiErrorOf(
+      applyOps(SEEDED, [{ op: 'component.create', component: newNote('v1') }]),
+    )
+    expect(viewer.status).toBe(403)
+  })
+
+  it('validates fields', async () => {
+    as('j.doe')
+    await applyOps(EMPTY, [{ op: 'component.create', component: newNote('n1') }])
+    const bad = await apiErrorOf(
+      applyOps(EMPTY, [{ op: 'component.update', id: 'n1', version: 1, set: { w: -5 } as never }]),
+    )
+    expect(bad).toMatchObject({ status: 400, code: 'INVALID_OP' })
+  })
+
+  it('can simulate failures for testing', async () => {
+    as('j.doe')
+    localStorage.setItem('mock.failOps', '503')
+    const error = await apiErrorOf(
+      applyOps(EMPTY, [{ op: 'component.create', component: newNote('n1') }]),
+    )
+    expect(error.status).toBe(503)
+    localStorage.removeItem('mock.failOps')
   })
 })

@@ -64,12 +64,18 @@ export function useCanvasList(params: MaybeRefOrGetter<CanvasListParams>) {
   )
 }
 
+/**
+ * The full canvas. Refetched when the window regains focus, so other people's changes
+ * show up when you come back to the tab (merged by the canvas document store).
+ */
 export function useCanvas(id: MaybeRefOrGetter<string>) {
   return useQuery(
     computed(() =>
       queryOptions({
         queryKey: canvasKeys.detail(toValue(id)),
         queryFn: ({ signal }) => getCanvas(toValue(id), signal),
+        refetchOnWindowFocus: 'always',
+        staleTime: 0,
       }),
     ),
   )

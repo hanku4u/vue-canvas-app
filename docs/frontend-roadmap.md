@@ -116,7 +116,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Deferred:** the hover footer showing filter bindings comes in F10.
 - **Note:** Markdown via `markdown-it`, with raw HTML off, task lists, and DOMPurify sanitizing; links open in a new tab. Placeholders stay registered (for seeded slots and the dev menu) but aren't in the palette.
 
-## F4: Document model, undo/redo, persistence · L
+## F4: Document model, undo/redo, persistence · L ✅
 
 **Scope**
 - `canvasDoc` store hydrated from `GET /api/canvases/{id}`.
@@ -130,6 +130,15 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - MSW handler for `/ops` with versioning and conflict simulation (a dev toggle to force conflicts).
 
 **Done when:** edits survive reload. Undo/redo works across all edit types. Two browser tabs editing different components don't conflict, and the same component produces a conflict dialog. Unit tests cover op/inverse pairs and queue coalescing.
+
+**As built (`src/sync/`):**
+- **`ops.ts`:** local ops (create / update / delete) with inverses. One user action is one transaction and one undo step. Consecutive nudges or inspector number edits merge within 1 s.
+- **`pending.ts`:** what the server doesn't have yet, tracked per component and field, not as a queue of ops. Edits coalesce: create + delete cancels out, and delete + re-create becomes a full update. Wire ops are built at send time with each component's latest server version.
+- **`canvasSync.ts`:** one batch in flight at a time, about 1 s debounce. Network or 5xx errors → offline with backoff (1 s up to 30 s). 409 → conflict dialog. 400/403/404 → the canvas is reloaded from the server.
+- **Conflict dialog:** resolves all conflicting components at once ("keep theirs" or "reapply mine"), not one by one.
+- **Remote changes:** the canvas is refetched when the window regains focus and merged, keeping components that have unsaved local edits.
+- **Copy/paste:** goes through localStorage (works across canvases and tabs, no clipboard permission), and is also written to the system clipboard as JSON.
+- **Mock backend:** re-reads its localStorage-backed data per request, so two tabs act as two clients of one server. `localStorage['mock.failOps'] = 'network' | '503'` simulates save failures, and the canvas menu (dev) has "Simulate edit by another user" to trigger conflicts.
 
 ## F5: Groups · M
 

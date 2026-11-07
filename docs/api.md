@@ -131,7 +131,13 @@ Responses:
 { "error": { "code": "FORBIDDEN", "details": { "deniedOps": [2] } } }
 ```
 
-The batch is all-or-nothing.
+The batch is all-or-nothing. Rules the frontend relies on:
+
+- **Versions:** each `component.update` / `component.delete` carries the component's current `version`. A mismatch is a `409` whose `conflicts[].current` is the component as the server has it.
+- **Missing components:** an update or delete of a component that no longer exists, or that the caller can no longer see, is also a `409`, with `current: null`. The client can then drop its copy or create it again.
+- **Re-creating a deleted id:** `component.create` may reuse the id of a component that was deleted (undo of a delete). Creating an id that currently exists is `400 INVALID_OP`.
+- **Response versions:** the `200` response's `versions` contains the new version of every created or updated component (created ones start at 1), plus `"canvas"` when the canvas itself was updated. Deleted components are not listed.
+- **Coalescing:** the client merges edits per component before sending. A batch never contains two ops for the same component.
 
 ### `DELETE /api/canvases/{id}`
 

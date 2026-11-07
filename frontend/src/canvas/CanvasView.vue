@@ -27,6 +27,7 @@ import ZoomControls from './ZoomControls.vue'
 import { GRID, MAX_ZOOM, MIN_ZOOM, snap } from './geometry'
 import { provideLevelOfDetail, TINY_BELOW_ZOOM } from './lod'
 import { altPressed, useModifierKeys } from './modifiers'
+import { pasteInputs, readClipboard, toClipboard, writeClipboard } from './clipboard'
 import { PALETTE_MIME } from './palette'
 import { useShortcuts, type Shortcut } from './shortcuts'
 import { loadViewport, saveViewport } from './viewportStorage'
@@ -168,6 +169,39 @@ function duplicateSelected(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Clipboard (copy / cut / paste, across canvases in this browser)
+// ---------------------------------------------------------------------------
+
+/** Last pointer position over the canvas, in flow coordinates (paste target). */
+let pointer: { x: number; y: number } | null = null
+
+function onPointerMove(event: PointerEvent): void {
+  pointer = toFlow(event)
+}
+
+function onPointerLeave(): void {
+  pointer = null
+}
+
+function copySelected(): number {
+  const ids = selectedIds()
+  const selected = store.ordered.filter((c) => ids.includes(c.id))
+  if (selected.length) writeClipboard(toClipboard(props.canvasId, selected))
+  return selected.length
+}
+
+function cutSelected(): void {
+  if (copySelected()) deleteSelected()
+}
+
+function paste(): void {
+  const payload = readClipboard()
+  if (!payload || !canEdit.value) return
+  const created = store.addComponents(pasteInputs(payload, pointer))
+  if (created.length) void nextTick(() => selectOnly(created.map((c) => c.id)))
+}
+
+// ---------------------------------------------------------------------------
 // Adding components (palette click / drop, context menu)
 // ---------------------------------------------------------------------------
 
@@ -287,6 +321,12 @@ const menuOptions = computed<DropdownOption[]>(() => {
   if (menu.value.kind === 'node') {
     const editableSelected = getSelectedNodes.value.some((n: GraphNode) => n.draggable)
     return [
+      { key: 'copy', label: menuLabel('Copy', { hint: 'Ctrl/⌘ C' }) },
+      {
+        key: 'cut',
+        label: menuLabel('Cut', { hint: 'Ctrl/⌘ X' }),
+        disabled: !editableSelected,
+      },
       {
         key: 'duplicate',
         label: menuLabel('Duplicate', { hint: 'Ctrl/⌘ D' }),
@@ -320,6 +360,11 @@ const menuOptions = computed<DropdownOption[]>(() => {
         { key: 'add-50', label: menuLabel('Add 50 placeholders (dev)') },
       )
     }
+    items.push({
+      key: 'paste',
+      label: menuLabel('Paste here', { hint: 'Ctrl/⌘ V' }),
+      disabled: !readClipboard(),
+    })
     items.push({ key: 'd1', type: 'divider' })
   }
   items.push(
@@ -356,6 +401,16 @@ function onMenuSelect(key: string): void {
       break
     case 'duplicate':
       duplicateSelected()
+      break
+    case 'copy':
+      copySelected()
+      break
+    case 'cut':
+      cutSelected()
+      break
+    case 'paste':
+      pointer = at
+      paste()
       break
     case 'front':
       store.bringToFront(ids)
@@ -397,6 +452,15 @@ const shortcuts = (): Shortcut[] => [
   },
   { combo: ['delete', 'backspace'], description: 'Delete selection', handler: deleteSelected },
   { combo: 'mod+d', description: 'Duplicate selection', handler: duplicateSelected },
+  { combo: 'mod+c', description: 'Copy selection', handler: () => void copySelected() },
+  { combo: 'mod+x', description: 'Cut selection', handler: cutSelected },
+  { combo: 'mod+v', description: 'Paste', handler: paste },
+  { combo: 'mod+z', description: 'Undo', handler: () => void store.undo() },
+  {
+    combo: ['mod+shift+z', 'mod+y'],
+    description: 'Redo',
+    handler: () => void store.redo(),
+  },
   { combo: ['arrowup', 'shift+arrowup'], description: 'Nudge up', handler: nudge(0, -1) },
   { combo: ['arrowdown', 'shift+arrowdown'], description: 'Nudge down', handler: nudge(0, 1) },
   { combo: ['arrowleft', 'shift+arrowleft'], description: 'Nudge left', handler: nudge(-1, 0) },
@@ -430,6 +494,8 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
     data-testid="canvas-view"
     @dragover="onDragOver"
     @drop="onDrop"
+    @pointermove="onPointerMove"
+    @pointerleave="onPointerLeave"
   >
     <VueFlow
       :id="flowId"

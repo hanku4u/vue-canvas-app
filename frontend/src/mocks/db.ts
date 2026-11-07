@@ -242,30 +242,61 @@ function storage(): Storage | null {
 }
 
 let db: MockDb | null = null
+/** The serialized state we last loaded or saved, to notice writes from other tabs. */
+let lastRaw: string | null = null
+
+function parse(raw: string | null): MockDb | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as MockDb
+    return parsed.version === DB_VERSION ? parsed : null
+  } catch {
+    return null // corrupt or old data: start fresh
+  }
+}
 
 export function getDb(): MockDb {
   if (db) return db
-  const raw = storage()?.getItem(STORAGE_KEY)
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as MockDb
-      if (parsed.version === DB_VERSION) db = parsed
-    } catch {
-      // Corrupt or old data: start fresh.
-    }
-  }
-  db ??= seed()
+  lastRaw = storage()?.getItem(STORAGE_KEY) ?? null
+  db = parse(lastRaw) ?? seed()
   return db
 }
 
+/**
+ * Pick up changes another tab saved, so several tabs act like clients of one server.
+ * Called at the start of every request (see identify.ts).
+ */
+export function refreshDb(): void {
+  const raw = storage()?.getItem(STORAGE_KEY) ?? null
+  if (db && raw !== null && raw !== lastRaw) {
+    db = parse(raw) ?? db
+    lastRaw = raw
+  }
+}
+
 export function saveDb(): void {
-  if (db) storage()?.setItem(STORAGE_KEY, JSON.stringify(db))
+  if (!db) return
+  lastRaw = JSON.stringify(db)
+  storage()?.setItem(STORAGE_KEY, lastRaw)
 }
 
 /** Reset to the seed state (used by tests and the dev menu). */
 export function resetDb(): void {
   db = seed()
+  lastRaw = null
   storage()?.removeItem(STORAGE_KEY)
+}
+
+/**
+ * Dev/test switch to make POST /ops fail: 'network' (connection error) or an HTTP status
+ * such as '500'. Stored in localStorage under `mock.failOps`.
+ */
+export function opsFailureMode(): string | null {
+  try {
+    return storage()?.getItem('mock.failOps') ?? null
+  } catch {
+    return null
+  }
 }
 
 /** Record that a user was seen, like the backend's identity middleware does. */

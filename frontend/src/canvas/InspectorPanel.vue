@@ -56,7 +56,10 @@ function setGeometry(field: 'x' | 'y' | 'w' | 'h', value: number | null): void {
       : field === 'h' && min
         ? Math.max(min.h, value)
         : value
-  store.updateGeometry([{ id: single.value.id, [field]: Math.round(clamped) }])
+  // Typing a number is one undo step per field, not one per keystroke.
+  store.updateGeometry([{ id: single.value.id, [field]: Math.round(clamped) }], {
+    mergeKey: `inspector:${single.value.id}:${field}`,
+  })
 }
 
 function setConfig(key: string, value: unknown): void {

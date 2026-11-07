@@ -180,3 +180,107 @@ describe('canvasDoc store: titles, config and duplication', () => {
     expect(store.ordered.slice(-2).map((c) => c.id)).toEqual([copy, lockedCopy])
   })
 })
+
+describe('canvasDoc store: undo, redo and remote merge', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    registerBuiltInComponents()
+  })
+
+  function setup(role: CanvasRole = 'owner') {
+    const store = useCanvasDocStore()
+    // Never actually send: these tests are about local state.
+    store.configure({ syncDebounceMs: 60_000, syncSend: () => new Promise(() => undefined) })
+    store.load(canvas(role, [component('a', 0), component('b', 1)]))
+    return store
+  }
+
+  it('undoes and redoes moves, adds, deletes and config changes', () => {
+    const store = setup()
+    store.updateGeometry([{ id: 'a', x: 96 }])
+    const added = store.addComponent({ type: 'note', title: 'N', x: 0, y: 0, w: 288, h: 192 })!
+    store.removeComponents(['b'])
+    store.renameComponent('a', 'Renamed')
+
+    expect(store.undo()).toBe(true) // rename
+    expect(store.components.a?.title).toBe('a')
+    store.undo() // delete b
+    expect(store.components.b).toBeDefined()
+    store.undo() // add
+    expect(store.components[added.id]).toBeUndefined()
+    store.undo() // move
+    expect(store.components.a?.x).toBe(0)
+    expect(store.canUndo).toBe(false)
+
+    store.redo()
+    store.redo()
+    expect(store.components.a?.x).toBe(96)
+    expect(store.components[added.id]?.title).toBe('N')
+    expect(store.canRedo).toBe(true)
+  })
+
+  it('treats a multi-component drag as one undo step', () => {
+    const store = setup()
+    store.updateGeometry([
+      { id: 'a', x: 16, y: 16 },
+      { id: 'b', x: 32, y: 32 },
+    ])
+    store.undo()
+    expect([store.components.a?.x, store.components.b?.x]).toEqual([0, 0])
+  })
+
+  it('merges consecutive nudges into one undo step', () => {
+    const store = setup()
+    store.nudge(['a'], 16, 0)
+    store.nudge(['a'], 16, 0)
+    store.nudge(['a'], 16, 0)
+    expect(store.components.a?.x).toBe(48)
+    store.undo()
+    expect(store.components.a?.x).toBe(0)
+    expect(store.canUndo).toBe(false)
+  })
+
+  it('marks the document dirty until saved', () => {
+    const store = setup()
+    expect(store.saveStatus).toBe('saved')
+    store.nudge(['a'], 16, 0)
+    expect(store.saveStatus).toBe('pending')
+    expect(store.dirty).toBe(true)
+  })
+
+  it('viewers cannot undo', () => {
+    const store = setup('viewer')
+    expect(store.undo()).toBe(false)
+  })
+
+  it('merges remote changes except for components with unsaved edits', () => {
+    const store = setup()
+    store.updateGeometry([{ id: 'a', x: 500 }]) // pending local edit
+    const remote = canvas('owner', [
+      { ...component('a', 0), x: 7, version: 5 },
+      { ...component('b', 1), x: 99, version: 3 },
+      { ...component('c', 2), version: 1 },
+    ])
+    store.mergeRemote(remote)
+    expect(store.components.a?.x).toBe(500) // ours wins while pending
+    expect(store.components.b).toMatchObject({ x: 99, version: 3 })
+    expect(store.components.c).toBeDefined()
+
+    // Removed on the server and not edited here → removed locally.
+    store.mergeRemote(canvas('owner', [{ ...component('a', 0), version: 5 }]))
+    expect(store.components.b).toBeUndefined()
+  })
+
+  it('resolves conflicts by keeping theirs or reapplying mine', () => {
+    const store = setup()
+    store.updateGeometry([{ id: 'a', x: 500 }])
+    store.conflicts = [{ opIndex: 0, id: 'a', current: { ...component('a', 0), x: 7, version: 4 } }]
+    store.resolveConflicts('mine')
+    expect(store.components.a).toMatchObject({ x: 500, version: 4 })
+
+    store.updateGeometry([{ id: 'b', x: 300 }])
+    store.conflicts = [{ opIndex: 0, id: 'b', current: null }]
+    store.resolveConflicts('theirs')
+    expect(store.components.b).toBeUndefined()
+  })
+})
