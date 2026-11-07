@@ -86,7 +86,7 @@ Each phase ends with something an engineer (or the admin) can try.
 | **6. Groups and filters** | Groups, filter bar, group filters, bindings, publishing, filters in the URL | canvas-ux, data-layer |
 | **7. Hardening** | Performance pass on large canvases, conflict handling UX, accessibility pass, export (if confirmed) | — |
 
-Phases 3 and 4 can run in parallel with frontend phases 1 and 5, since backend and frontend are owned separately.
+Phases 3 and 4 can run in parallel with frontend phases 1 and 5, since backend and frontend are owned separately. The detailed frontend plan, built contract-first against an in-browser API mock so it isn't blocked on the backend, is in [frontend-roadmap.md](frontend-roadmap.md).
 
 ## Success criteria
 

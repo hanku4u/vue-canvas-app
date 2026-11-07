@@ -7,6 +7,7 @@ Planning and design docs for **vue-canvas-app**, an infinite-canvas workspace fo
 | Doc | What it covers |
 | --- | --- |
 | [scope.md](scope.md) | Problem, users, goals, v1 in/out, roadmap, ownership |
+| [frontend-roadmap.md](frontend-roadmap.md) | Frontend milestones F0–F13: scope, done criteria, sequencing, backend handoff |
 | [architecture.md](architecture.md) | System overview, frontend and backend structure, key request flows, data model, deployment |
 | [canvas-ux.md](canvas-ux.md) | Screens, canvas interactions, shortcuts, the filter bar, read-only and locked states |
 | [components.md](components.md) | Spec for each component type (chart, wafer map, table, note) and their shared behavior |

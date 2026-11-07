@@ -26,6 +26,7 @@ A running log of significant decisions. Each entry records the context, the choi
 | DD-018 | Query and audit logging in PostgreSQL | Proposed |
 | DD-019 | Monorepo with a mock data API | Accepted |
 | DD-020 | Admin screen early: permissions and usage first | Accepted |
+| DD-021 | Frontend built contract-first against MSW until FastAPI exists | Proposed |
 
 ---
 
@@ -244,3 +245,15 @@ A running log of significant decisions. Each entry records the context, the choi
 ## DD-020: Admin screen early, permissions and usage first
 
 **Decision:** The admin screen is roadmap phase 3, with usage and health completed in phase 4 once query logging exists. v1 contents: admins, canvas browser, ownership transfer, access management, user access lookup, usage overview, per-dataset stats, slow queries and errors, health, audit log. Dataset and filter views come later and are read-only (DD-006).
+
+---
+
+## DD-021: Frontend built contract-first against MSW until FastAPI exists
+
+**Context:** The FastAPI backend is built separately and doesn't exist yet. The frontend shouldn't wait for it.
+
+**Decision:** The frontend implements [api.md](api.md) against Mock Service Worker handlers (in-memory store persisted to localStorage, with the permission rules enforced). The `/api/query` handler calls the local mock data API and applies simple JS shaping. A `VITE_API_MOCK` flag switches between MSW and the real backend through the Vite proxy. Handlers are removed per endpoint group as the backend catches up.
+
+**Alternatives:** wait for the backend (blocks the frontend); build a throwaway Node backend (more work than MSW, and it would diverge from the FastAPI implementation).
+
+**Consequences:** frontend work can start immediately, and the contract is exercised early. Contract drift is a risk until types are generated from OpenAPI, so the mock must follow api.md strictly, and api.md changes are agreed before either side implements them.
