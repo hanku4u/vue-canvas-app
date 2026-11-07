@@ -14,7 +14,7 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/ e2e/",
+    "format": "prettier --write src/ e2e/",
     "dev:all": "concurrently -k -n web,data -c blue,green \"npm:dev\" \"uv --directory ../mock-data-api run mock-data-api\"",
     "test:unit:run": "vitest run",
     "lint:check": "oxlint . && eslint .",

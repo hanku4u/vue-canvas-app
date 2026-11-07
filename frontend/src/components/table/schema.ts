@@ -35,16 +35,10 @@ export const tableConfigSchema = z.object({
       'x-widget': 'segmented',
       'x-enum-labels': { none: 'None', single: 'Single', multiple: 'Multiple' },
     }),
-  pageSize: z
-    .number()
-    .int()
-    .min(50)
-    .max(1000)
-    .default(200)
-    .meta({
-      title: 'Rows per request',
-      description: 'How many rows are loaded at a time while scrolling.',
-    }),
+  pageSize: z.number().int().min(50).max(1000).default(200).meta({
+    title: 'Rows per request',
+    description: 'How many rows are loaded at a time while scrolling.',
+  }),
   decimals: z
     .number()
     .int()
