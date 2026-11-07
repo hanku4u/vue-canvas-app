@@ -21,6 +21,7 @@
     "format:check": "prettier --check src/ e2e/"
   },
   "dependencies": {
+    "@lucide/vue": "^1.70.0",
     "@tanstack/vue-query": "^5.107.1",
     "naive-ui": "^2.45.3",
     "pinia": "^4.0.3",

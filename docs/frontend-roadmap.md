@@ -63,7 +63,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 
 **Done when:** `npm run dev` shows a placeholder page with MSW active, and CI is green on a PR.
 
-## F1: App shell and Home · S
+## F1: App shell and Home · S ✅
 
 **Scope**
 - Layout: top bar (app name, Admin link if `isAdmin`, user menu with dev user switcher), router outlet, toasts, global error boundary, 404 page.

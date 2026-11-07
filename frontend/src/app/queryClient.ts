@@ -17,3 +17,6 @@ export function createQueryClient(): QueryClient {
     },
   })
 }
+
+/** The app's single query client (also used outside components, e.g. router guards). */
+export const queryClient = createQueryClient()

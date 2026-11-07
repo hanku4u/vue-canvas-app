@@ -5,7 +5,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from './App.vue'
 import router from './router'
 import { initColorScheme } from './app/colorScheme'
-import { createQueryClient } from './app/queryClient'
+import { queryClient } from './app/queryClient'
 import './app/styles.css'
 
 async function enableMocking(): Promise<void> {
@@ -27,7 +27,7 @@ async function bootstrap(): Promise<void> {
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)
-  app.use(VueQueryPlugin, { queryClient: createQueryClient() })
+  app.use(VueQueryPlugin, { queryClient })
   app.mount('#app')
 }
 

@@ -9,6 +9,7 @@ import {
 } from 'naive-ui'
 import { isDark } from '@/app/colorScheme'
 import { darkThemeOverrides, lightThemeOverrides } from '@/app/theme'
+import ErrorBoundary from '@/app/ErrorBoundary.vue'
 
 const theme = computed(() => (isDark.value ? darkTheme : null))
 const themeOverrides = computed(() => (isDark.value ? darkThemeOverrides : lightThemeOverrides))
@@ -19,7 +20,9 @@ const themeOverrides = computed(() => (isDark.value ? darkThemeOverrides : light
     <NNotificationProvider placement="bottom-right">
       <NMessageProvider placement="bottom">
         <NDialogProvider>
-          <RouterView />
+          <ErrorBoundary>
+            <RouterView />
+          </ErrorBoundary>
         </NDialogProvider>
       </NMessageProvider>
     </NNotificationProvider>

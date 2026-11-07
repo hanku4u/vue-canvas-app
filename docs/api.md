@@ -52,11 +52,15 @@ Known users (anyone who has used the app), for the share and ACL dialogs.
   "items": [{
     "id": "c0f…", "title": "ET-04 CD excursion", "description": "",
     "owner": { "knoxId": "j.doe", "displayName": "Jane Doe" },
-    "role": "owner", "componentCount": 7, "updatedAt": "2026-11-07T14:02:00Z"
+    "role": "owner", "componentCount": 7, "version": 3, "updatedAt": "2026-11-07T14:02:00Z"
   }],
   "nextCursor": null
 }
 ```
+
+- `role` is `owner`, `editor`, `viewer`, or `admin` (access only through admin rights, with no ownership or share).
+- `version` lets list views send `canvas.update` ops (rename) without loading the full canvas.
+- `scope=all` is admin-only (`403 ADMIN_REQUIRED` otherwise).
 
 ### `POST /api/canvases`
 

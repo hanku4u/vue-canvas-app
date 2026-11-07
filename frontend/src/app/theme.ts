@@ -26,9 +26,10 @@ export const lightThemeOverrides: GlobalThemeOverrides = {
 export const darkThemeOverrides: GlobalThemeOverrides = {
   common: {
     ...shared,
-    primaryColor: '#818cf8',
-    primaryColorHover: '#a5b4fc',
-    primaryColorPressed: '#6366f1',
-    primaryColorSuppl: '#a5b4fc',
+    // Deeper than the light-mode accent tokens so white button text keeps ~4.5:1 contrast.
+    primaryColor: '#6366f1',
+    primaryColorHover: '#818cf8',
+    primaryColorPressed: '#4f46e5',
+    primaryColorSuppl: '#818cf8',
   },
 }

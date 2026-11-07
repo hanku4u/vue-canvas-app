@@ -12,7 +12,7 @@ npm run dev         # Vite dev server only
 
 In development, `/api` is served by an **in-browser mock of the FastAPI backend** (MSW, `src/mocks/`), switched on by `VITE_API_MOCK=1` in `.env.development`. To use a real FastAPI backend instead, create `.env.development.local` with `VITE_API_MOCK=0`. The dev server then proxies `/api` to `http://127.0.0.1:8000` (override with `API_PROXY_TARGET`).
 
-**Dev identity:** the API client sends `x-knox-id` from `localStorage['dev.knoxId']` (default `j.doe`, an admin). Other seeded users are `k.lee`, `m.park` and `s.choi`. A user switcher UI arrives in F1.
+**Dev identity:** the API client sends `x-knox-id` from `localStorage['dev.knoxId']` (default `j.doe`, an admin). Switch users from the avatar menu (**Switch user (dev)**). Seeded users are `j.doe` (admin), `k.lee`, `m.park` and `s.choi`. **Reset mock data** in the same menu restores the seed canvases and shares.
 
 ## Check
 
@@ -29,12 +29,13 @@ In development, `/api` is served by an **in-browser mock of the FastAPI backend*
 
 ```
 src/
-├── api/        API client (ApiError, dev identity), hand-written types from docs/api.md
-├── app/        Theme, color scheme, query client, global styles
-├── mocks/      MSW mock of FastAPI: handlers/, in-memory db, identity
-├── pages/      Route pages
-├── router/
+├── api/        API client (ApiError, dev identity), types from docs/api.md, query hooks
+├── app/        App shell (layout/, error boundary), theme, color scheme, query client, styles
+├── mocks/      MSW mock of FastAPI: handlers/, in-memory db, identity, permission rules
+├── pages/      Route pages (Home, CanvasEditor, Admin, Status)
+├── router/     Routes and the admin guard
+├── ui/         Shared UI: canvases/ (card, name dialog, actions), formatting, error notifier
 └── test/       Vitest setup
 ```
 
-Further folders (`canvas/`, `components/`, `registry/`, `filters/`, `data/`, `stores/`, `sync/`, `ui/`) are added by the milestones that need them.
+Further folders (`canvas/`, `components/`, `registry/`, `filters/`, `data/`, `stores/`, `sync/`) are added by the milestones that need them.

@@ -14,6 +14,7 @@
   --app-text: #0f172a;
   --app-text-muted: #64748b;
   --app-primary: #4f46e5;
+  --app-danger: #d03050;
 }
 
 :root.app-dark {
@@ -23,6 +24,7 @@
   --app-text: #fafafa;
   --app-text-muted: #a1a1aa;
   --app-primary: #818cf8;
+  --app-danger: #e88080;
 }
 
 *,

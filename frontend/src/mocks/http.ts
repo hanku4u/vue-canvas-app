@@ -20,3 +20,8 @@ export function apiError(status: number, code: string, message: string, details?
     { status, headers: { 'x-request-id': id } },
   )
 }
+
+/** 204 No Content with a request id. */
+export function noContent() {
+  return new HttpResponse(null, { status: 204, headers: { 'x-request-id': requestId() } })
+}
