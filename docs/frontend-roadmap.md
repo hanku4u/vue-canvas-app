@@ -140,7 +140,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Copy/paste:** goes through localStorage (works across canvases and tabs, no clipboard permission), and is also written to the system clipboard as JSON.
 - **Mock backend:** re-reads its localStorage-backed data per request, so two tabs act as two clients of one server. `localStorage['mock.failOps'] = 'network' | '503'` simulates save failures, and the canvas menu (dev) has "Simulate edit by another user" to trigger conflicts.
 
-## F5: Groups · M
+## F5: Groups · M ✅
 
 **Scope**
 - Create from selection (Ctrl+G), ungroup (Ctrl+Shift+G). Groups are Vue Flow parent nodes.
@@ -150,6 +150,14 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - All group edits are ops with inverses.
 
 **Done when:** groups behave per [canvas-ux.md](canvas-ux.md#groups), including undo and persistence.
+
+**As built:**
+- **Positions:** component `x`/`y` are relative to the group, so moving a group is a single `group.update`. Membership is decided on drop by the component's center (collapsed groups don't take drops), and the drop point keeps its absolute position.
+- **Delete:** pressing Delete on a group removes the frame and keeps the contents (the safe default). "Delete group and contents" is in the group menu and the inspector, and is refused if any child is locked for you.
+- **Locked components:** they can't be put into a new group by someone they're locked for. Ungrouping moves them out anyway (the group's layout belongs to canvas editors).
+- **Copy/paste:** works in absolute coordinates. Pasted or palette-dropped components join the group they land in.
+- **Resize handles:** Vue Flow's NodeResizer clamps a node to its minimum whenever it mounts, which fought collapse and expand. Group resizers therefore stay mounted with a header-height minimum, and the 240 × 120 minimum is enforced when a resize ends.
+- **Mock backend:** applies ops in sequence with a snapshot rollback for atomicity.
 
 ## F6: Data foundation · M
 

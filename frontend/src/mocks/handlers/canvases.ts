@@ -17,6 +17,8 @@ import {
   isAdmin,
   newId,
   opsFailureMode,
+  replaceDb,
+  type MockDb,
   saveDb,
   userRef,
   type MockCanvas,
@@ -145,7 +147,7 @@ function readJson<T>(request: Request): Promise<T | null> {
 type OpOutcome =
   | { kind: 'ok'; apply: () => [id: string, version: number] | void }
   | { kind: 'conflict'; id: string; current: unknown }
-  | { kind: 'denied' }
+  | { kind: 'denied'; code?: string }
   | { kind: 'invalid'; message: string }
 
 const EDITABLE_COMPONENT_FIELDS = new Set([
@@ -175,6 +177,45 @@ function invalidComponentFields(fields: Record<string, unknown>): string | null 
     if (key === 'groupId' && value !== null && typeof value !== 'string') return 'Invalid groupId'
   }
   return null
+}
+
+/** A group id a component may join: null, or a group on the same canvas. */
+function invalidGroupRef(canvas: MockCanvas, groupId: unknown): string | null {
+  if (groupId === undefined || groupId === null) return null
+  const group = getDb().groups[String(groupId)]
+  return group && group.canvasId === canvas.id ? null : `Group ${String(groupId)} does not exist`
+}
+
+const EDITABLE_GROUP_FIELDS = new Set([
+  'title',
+  'x',
+  'y',
+  'w',
+  'h',
+  'zIndex',
+  'collapsed',
+  'defaultFilters',
+])
+
+function invalidGroupFields(fields: Record<string, unknown>): string | null {
+  for (const [key, value] of Object.entries(fields)) {
+    if (!EDITABLE_GROUP_FIELDS.has(key)) return `Field '${key}' cannot be set`
+    if (['x', 'y', 'w', 'h', 'zIndex'].includes(key)) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return `'${key}' must be a number`
+    }
+    if ((key === 'w' || key === 'h') && (value as number) <= 0) return `'${key}' must be positive`
+    if (key === 'title' && validTitle(value) === null) return 'Invalid title'
+    if (key === 'collapsed' && typeof value !== 'boolean') return "'collapsed' must be a boolean"
+    if (key === 'defaultFilters' && (typeof value !== 'object' || value === null)) {
+      return "'defaultFilters' must be an object"
+    }
+  }
+  return null
+}
+
+function targetGroup(canvas: MockCanvas, id: string): MockGroup | null {
+  const group = getDb().groups[id]
+  return group && group.canvasId === canvas.id ? group : null
 }
 
 /**
@@ -224,7 +265,7 @@ function checkOp(knoxId: string, canvas: MockCanvas, op: CanvasOp, now: string):
       }
       if (getDb().components[id])
         return { kind: 'invalid', message: `Component ${id} already exists` }
-      const problem = invalidComponentFields(fields)
+      const problem = invalidComponentFields(fields) ?? invalidGroupRef(canvas, fields.groupId)
       if (problem) return { kind: 'invalid', message: problem }
       return {
         kind: 'ok',
@@ -261,7 +302,8 @@ function checkOp(knoxId: string, canvas: MockCanvas, op: CanvasOp, now: string):
       if (op.version !== component.version) {
         return { kind: 'conflict', id: op.id, current: toComponent(knoxId, canvas, component) }
       }
-      const problem = invalidComponentFields(op.set ?? {})
+      const problem =
+        invalidComponentFields(op.set ?? {}) ?? invalidGroupRef(canvas, op.set?.groupId)
       if (problem) return { kind: 'invalid', message: problem }
       return {
         kind: 'ok',
@@ -290,9 +332,93 @@ function checkOp(knoxId: string, canvas: MockCanvas, op: CanvasOp, now: string):
         },
       }
     }
-    default:
-      // Group ops arrive with groups (roadmap F5).
-      return { kind: 'invalid', message: `Op '${op.op}' is not supported by the mock yet` }
+    case 'group.create': {
+      if (!canEditCanvas(knoxId, canvas)) return { kind: 'denied' }
+      const { id, ...fields } = op.group ?? ({} as typeof op.group)
+      if (typeof id !== 'string' || !id)
+        return { kind: 'invalid', message: 'group.create needs an id' }
+      if (getDb().groups[id]) return { kind: 'invalid', message: `Group ${id} already exists` }
+      const problem = invalidGroupFields(fields)
+      if (problem) return { kind: 'invalid', message: problem }
+      return {
+        kind: 'ok',
+        apply: () => {
+          getDb().groups[id] = {
+            id,
+            canvasId: canvas.id,
+            title: fields.title ?? 'Group',
+            x: fields.x ?? 0,
+            y: fields.y ?? 0,
+            w: fields.w ?? 400,
+            h: fields.h ?? 300,
+            zIndex: fields.zIndex ?? 0,
+            collapsed: fields.collapsed ?? false,
+            defaultFilters: fields.defaultFilters ?? {},
+            version: 1,
+            updatedBy: knoxId,
+            updatedAt: now,
+          }
+          return [id, 1]
+        },
+      }
+    }
+    case 'group.update': {
+      const group = targetGroup(canvas, op.id)
+      if (!group) return { kind: 'conflict', id: op.id, current: null }
+      if (!canEditCanvas(knoxId, canvas)) return { kind: 'denied' }
+      if (op.version !== group.version)
+        return { kind: 'conflict', id: op.id, current: toGroup(group) }
+      const problem = invalidGroupFields(op.set ?? {})
+      if (problem) return { kind: 'invalid', message: problem }
+      return {
+        kind: 'ok',
+        apply: () => {
+          Object.assign(group, op.set)
+          group.version += 1
+          group.updatedBy = knoxId
+          group.updatedAt = now
+          return [group.id, group.version]
+        },
+      }
+    }
+    case 'group.delete': {
+      const group = targetGroup(canvas, op.id)
+      if (!group) return { kind: 'conflict', id: op.id, current: null }
+      if (!canEditCanvas(knoxId, canvas)) return { kind: 'denied' }
+      if (op.version !== group.version)
+        return { kind: 'conflict', id: op.id, current: toGroup(group) }
+      if (op.mode !== 'ungroup' && op.mode !== 'withContents') {
+        return { kind: 'invalid', message: "mode must be 'ungroup' or 'withContents'" }
+      }
+      // Whatever is still in the group (including components the caller can't see).
+      const db = getDb()
+      const children = Object.values(db.components).filter((c) => c.groupId === group.id)
+      if (
+        op.mode === 'withContents' &&
+        children.some((c) => !canEditComponent(knoxId, canvas, c))
+      ) {
+        return { kind: 'denied', code: 'CONTAINS_UNEDITABLE' }
+      }
+      return {
+        kind: 'ok',
+        apply: () => {
+          for (const child of children) {
+            if (op.mode === 'withContents') {
+              delete db.components[child.id]
+              db.acl = db.acl.filter((a) => a.componentId !== child.id)
+            } else {
+              // Detach to the canvas, keeping the absolute position.
+              child.groupId = null
+              child.x += group.x
+              child.y += group.y
+              child.version += 1
+              child.updatedAt = now
+            }
+          }
+          delete db.groups[group.id]
+        },
+      }
+    }
   }
 }
 
@@ -394,8 +520,21 @@ export const canvasHandlers = [
       return apiError(400, 'INVALID_OP', 'Body must contain a non-empty ops array')
     }
 
+    // Ops apply in order (a component may join a group created earlier in the batch).
+    // The batch is atomic: on any failure the database is restored from a snapshot.
     const now = new Date().toISOString()
-    const outcomes = body.ops.map((op) => checkOp(user.knoxId, canvas, op, now))
+    const snapshot = JSON.stringify(getDb())
+    const versions: Record<string, number> = {}
+    const outcomes = body.ops.map((op) => {
+      const outcome = checkOp(user.knoxId, canvas, op, now)
+      if (outcome.kind === 'ok') {
+        const entry = outcome.apply()
+        if (entry) versions[entry[0]] = entry[1]
+      }
+      return outcome
+    })
+    const failed = outcomes.some((o) => o.kind !== 'ok')
+    if (failed) replaceDb(JSON.parse(snapshot) as MockDb)
 
     const invalid = outcomes.findIndex((o) => o.kind === 'invalid')
     if (invalid >= 0) {
@@ -404,7 +543,12 @@ export const canvasHandlers = [
     }
     const denied = outcomes.flatMap((o, i) => (o.kind === 'denied' ? [i] : []))
     if (denied.length) {
-      return apiError(403, 'FORBIDDEN', 'Not allowed to apply these ops', { deniedOps: denied })
+      const contains = outcomes.some((o) => o.kind === 'denied' && o.code === 'CONTAINS_UNEDITABLE')
+      return contains
+        ? apiError(403, 'CONTAINS_UNEDITABLE', 'The group contains components you cannot edit', {
+            deniedOps: denied,
+          })
+        : apiError(403, 'FORBIDDEN', 'Not allowed to apply these ops', { deniedOps: denied })
     }
     const conflicts = outcomes.flatMap((o, i) =>
       o.kind === 'conflict' ? [{ opIndex: i, id: o.id, current: o.current }] : [],
@@ -413,12 +557,6 @@ export const canvasHandlers = [
       return apiError(409, 'VERSION_CONFLICT', 'Changed by someone else', { conflicts })
     }
 
-    const versions: Record<string, number> = {}
-    for (const outcome of outcomes) {
-      if (outcome.kind !== 'ok') continue
-      const entry = outcome.apply()
-      if (entry) versions[entry[0]] = entry[1]
-    }
     canvas.revision += 1
     canvas.updatedAt = now
     saveDb()

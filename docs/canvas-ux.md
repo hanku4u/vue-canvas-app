@@ -120,7 +120,8 @@ Undo and redo cover only your own edits in this session. Undo of an edit that so
 ### Groups
 
 - **Create:** select components, then Ctrl/⌘ + G or "Group" in the context menu. The group frame wraps the selection with padding.
-- **Header:** title (double-click to rename), filter chips for group filters, collapse toggle, menu (filters, ungroup, delete group and contents).
+- **Header:** title (double-click to rename), content count, filter chips for group filters (F10), collapse toggle, menu (rename, collapse, ungroup, delete group and contents).
+- **Delete key** on a selected group removes the frame and keeps its contents in place. Deleting the contents too is an explicit menu action.
 - **Move:** dragging the header moves the group and everything in it.
 - **Membership:** drag a component into or out of a group frame to add or remove it.
 - **Collapse:** the group shrinks to its header bar. Children are unmounted, so they cost nothing. Collapsed state is saved.

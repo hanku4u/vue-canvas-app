@@ -284,3 +284,118 @@ describe('canvasDoc store: undo, redo and remote merge', () => {
     expect(store.components.b).toBeUndefined()
   })
 })
+
+describe('canvasDoc store: groups', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    registerBuiltInComponents()
+  })
+
+  function setup(components: CanvasComponent[]) {
+    const store = useCanvasDocStore()
+    store.configure({ syncDebounceMs: 60_000, syncSend: () => new Promise(() => undefined) })
+    store.load(canvas('editor', components))
+    return store
+  }
+
+  const at = (id: string, x: number, y: number, canEdit = true) => ({
+    ...component(id, 0, canEdit),
+    x,
+    y,
+    w: 100,
+    h: 100,
+  })
+
+  it('wraps the selection in a snapped frame with children positioned relative to it', () => {
+    const store = setup([at('a', 100, 100), at('b', 300, 200)])
+    const result = store.groupComponents(['a', 'b'], 'Etch')
+    const id = 'id' in result ? result.id : ''
+    const group = store.groups[id]!
+    expect(group).toMatchObject({ title: 'Etch', x: 64, y: 32 })
+    expect(group.w % 16).toBe(0)
+    expect(group.x + group.w).toBeGreaterThanOrEqual(300 + 100 + 24)
+    expect(store.components.a).toMatchObject({ groupId: id, x: 36, y: 68 })
+    expect(store.absolute(store.components.b!)).toEqual({ x: 300, y: 200 })
+
+    store.undo()
+    expect(store.groups).toEqual({})
+    expect(store.components.a).toMatchObject({ groupId: null, x: 100, y: 100 })
+  })
+
+  it('refuses to group locked components', () => {
+    const store = setup([at('a', 0, 0), at('locked', 200, 0, false)])
+    expect(store.groupComponents(['a', 'locked'])).toEqual({
+      error: 'Some selected components are locked for you',
+    })
+  })
+
+  it('ungroups keeping absolute positions, and undo restores the group', () => {
+    const store = setup([at('a', 100, 100)])
+    const { id } = store.groupComponents(['a']) as { id: string }
+    store.finishDrag([{ id, x: 400, y: 400 }]) // move the group
+    const before = store.absolute(store.components.a!)
+    store.ungroup([id])
+    expect(store.groups[id]).toBeUndefined()
+    expect(store.components.a).toMatchObject({ groupId: null, ...before })
+    store.undo()
+    expect(store.components.a?.groupId).toBe(id)
+    expect(store.absolute(store.components.a!)).toEqual(before)
+  })
+
+  it('changes membership when a component is dropped on or off a frame', () => {
+    const store = setup([at('a', 0, 0), at('b', 600, 600)])
+    const { id } = store.groupComponents(['a']) as { id: string }
+    const group = store.groups[id]!
+    // Drop b in the middle of the frame (absolute coordinates).
+    store.finishDrag([{ id: 'b', x: group.x + 30, y: group.y + 50 }])
+    expect(store.components.b).toMatchObject({ groupId: id, x: 30, y: 50 })
+    // Drag a far away: it leaves the group.
+    store.finishDrag([{ id: 'a', x: 2000, y: 2000 }])
+    expect(store.components.a).toMatchObject({ groupId: null, x: 2000, y: 2000 })
+    // Collapsed groups don't take drops.
+    store.setGroupCollapsed(id, true)
+    store.finishDrag([{ id: 'a', x: group.x + 30, y: group.y + 50 }])
+    expect(store.components.a?.groupId).toBeNull()
+  })
+
+  it('resizing from the top-left keeps children in place on the canvas', () => {
+    const store = setup([at('a', 100, 100)])
+    const { id } = store.groupComponents(['a']) as { id: string }
+    const before = store.absolute(store.components.a!)
+    const group = store.groups[id]!
+    store.updateGroupGeometry(id, { x: group.x - 64, y: group.y - 32, w: group.w + 64 })
+    expect(store.absolute(store.components.a!)).toEqual(before)
+    store.updateGroupGeometry(id, { w: 10, h: 10 })
+    expect(store.groups[id]).toMatchObject({ w: 240, h: 120 })
+  })
+
+  it('deletes with contents only when every child is editable', () => {
+    const store = setup([at('a', 0, 0), at('b', 200, 0)])
+    const { id } = store.groupComponents(['a', 'b']) as { id: string }
+    store.components.b!.access.canEdit = false
+    expect(store.deleteGroupWithContents(id)).toMatch(/cannot edit/)
+    store.components.b!.access.canEdit = true
+    expect(store.deleteGroupWithContents(id)).toBeNull()
+    expect(store.components).toEqual({})
+    store.undo()
+    expect(Object.keys(store.components).sort()).toEqual(['a', 'b'])
+    expect(store.groups[id]).toBeDefined()
+  })
+
+  it('Delete on a selected group keeps its contents', () => {
+    const store = setup([at('a', 0, 0)])
+    const { id } = store.groupComponents(['a']) as { id: string }
+    store.removeSelection([id])
+    expect(store.groups[id]).toBeUndefined()
+    expect(store.components.a).toMatchObject({ groupId: null, x: 0, y: 0 })
+  })
+
+  it('nudging a group moves it, not its children separately', () => {
+    const store = setup([at('a', 0, 0)])
+    const { id } = store.groupComponents(['a']) as { id: string }
+    const childBefore = { ...store.components.a! }
+    store.nudge([id, 'a'], 16, 0)
+    expect(store.components.a).toMatchObject({ x: childBefore.x, y: childBefore.y })
+    expect(store.absolute(store.components.a!).x).toBe(16)
+  })
+})

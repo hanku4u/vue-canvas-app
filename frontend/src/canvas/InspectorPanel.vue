@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { NAlert, NButton, NDivider, NIcon, NInput, NInputNumber } from 'naive-ui'
-import { CircleQuestionMark } from '@lucide/vue'
+import { NAlert, NButton, NDivider, NIcon, NInput, NInputNumber, NSwitch } from 'naive-ui'
+import { CircleQuestionMark, Group } from '@lucide/vue'
 import { inspectorFields } from '@/registry/inspectorFields'
 import { getDefinition, resolveConfig } from '@/registry/registry'
 import type { ComponentConfig } from '@/registry/types'
@@ -12,6 +12,38 @@ import SchemaForm from './SchemaForm.vue'
 
 const store = useCanvasDocStore()
 const ui = useCanvasUiStore()
+
+const singleGroup = computed(() =>
+  ui.selectedIds.length === 1 ? store.groups[ui.selectedIds[0] ?? ''] : undefined,
+)
+const groupTitle = ref('')
+watch(
+  () => singleGroup.value?.title,
+  (value) => {
+    groupTitle.value = value ?? ''
+  },
+  { immediate: true },
+)
+const groupError = ref<string | null>(null)
+
+function commitGroupTitle(): void {
+  const group = singleGroup.value
+  if (group && !store.renameGroup(group.id, groupTitle.value)) groupTitle.value = group.title
+}
+
+function setGroupGeometry(field: 'x' | 'y' | 'w' | 'h', value: number | null): void {
+  const group = singleGroup.value
+  if (!group || value === null) return
+  store.updateGroupGeometry(
+    group.id,
+    { [field]: Math.round(value) },
+    { mergeKey: `inspector:${group.id}:${field}` },
+  )
+}
+
+function deleteGroupWithContents(): void {
+  if (singleGroup.value) groupError.value = store.deleteGroupWithContents(singleGroup.value.id)
+}
 
 const single = computed(() =>
   ui.selectedIds.length === 1 ? store.components[ui.selectedIds[0] ?? ''] : undefined,
@@ -36,9 +68,10 @@ watch(
   { immediate: true },
 )
 watch(
-  () => single.value?.id,
+  () => ui.selectedIds.join(','),
   () => {
     configError.value = null
+    groupError.value = null
   },
 )
 
@@ -79,8 +112,105 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
 
 <template>
   <div class="inspector" data-testid="inspector">
+    <!-- One group -->
+    <template v-if="singleGroup">
+      <div class="inspector__type">
+        <NIcon :size="16"><Group /></NIcon>
+        <span>Group</span>
+        <span v-if="!store.canEdit" class="inspector__readonly">view only</span>
+      </div>
+
+      <label class="inspector__label" for="inspector-group-title">Title</label>
+      <NInput
+        id="inspector-group-title"
+        v-model:value="groupTitle"
+        size="small"
+        :maxlength="MAX_TITLE"
+        :disabled="!store.canEdit"
+        data-testid="inspector-group-title"
+        @blur="commitGroupTitle"
+        @keydown.enter="commitGroupTitle"
+      />
+      <label class="inspector__switch">
+        <span>Collapsed</span>
+        <NSwitch
+          :value="singleGroup.collapsed"
+          :disabled="!store.canEdit"
+          data-testid="inspector-group-collapsed"
+          @update:value="(v: boolean) => store.setGroupCollapsed(singleGroup!.id, v)"
+        />
+      </label>
+
+      <NDivider title-placement="left" class="inspector__divider">Position &amp; size</NDivider>
+      <div class="inspector__grid">
+        <label
+          >X<NInputNumber
+            size="small"
+            :value="singleGroup.x"
+            :step="16"
+            :disabled="!store.canEdit"
+            :show-button="false"
+            @update:value="(v) => setGroupGeometry('x', v)"
+        /></label>
+        <label
+          >Y<NInputNumber
+            size="small"
+            :value="singleGroup.y"
+            :step="16"
+            :disabled="!store.canEdit"
+            :show-button="false"
+            @update:value="(v) => setGroupGeometry('y', v)"
+        /></label>
+        <label
+          >W<NInputNumber
+            size="small"
+            :value="singleGroup.w"
+            :step="16"
+            :disabled="!store.canEdit"
+            :show-button="false"
+            @update:value="(v) => setGroupGeometry('w', v)"
+        /></label>
+        <label
+          >H<NInputNumber
+            size="small"
+            :value="singleGroup.h"
+            :step="16"
+            :disabled="!store.canEdit"
+            :show-button="false"
+            @update:value="(v) => setGroupGeometry('h', v)"
+        /></label>
+      </div>
+
+      <NDivider title-placement="left" class="inspector__divider">Contents</NDivider>
+      <p class="inspector__hint" data-testid="inspector-group-contents">
+        {{ pluralize(store.childrenOf(singleGroup.id).length, 'component') }}. Drag components onto
+        the frame to add them, or out of it to remove them.
+      </p>
+      <div v-if="store.canEdit" class="inspector__actions">
+        <NButton
+          size="small"
+          data-testid="inspector-ungroup"
+          @click="store.ungroup([singleGroup.id])"
+        >
+          Ungroup
+        </NButton>
+        <NButton
+          size="small"
+          type="error"
+          secondary
+          data-testid="inspector-delete-group"
+          @click="deleteGroupWithContents"
+        >
+          Delete with contents
+        </NButton>
+      </div>
+      <NAlert v-if="groupError" type="error" :show-icon="false" class="inspector__alert">
+        {{ groupError }}
+      </NAlert>
+    </template>
+
     <!-- One component -->
-    <template v-if="single">
+    <template v-else-if="single">
       <div class="inspector__type">
         <NIcon :size="16"><component :is="definition?.icon ?? CircleQuestionMark" /></NIcon>
         <span>{{ definition?.label ?? single.type }}</span>
@@ -257,6 +387,13 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
   margin: 0;
   font-size: 12px;
   color: var(--app-text-muted);
+}
+
+.inspector__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
 }
 
 .inspector__actions {

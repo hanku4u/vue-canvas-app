@@ -280,6 +280,11 @@ export function saveDb(): void {
   storage()?.setItem(STORAGE_KEY, lastRaw)
 }
 
+/** Swap in a whole database (used to roll back a failed ops batch). */
+export function replaceDb(value: MockDb): void {
+  db = value
+}
+
 /** Reset to the seed state (used by tests and the dev menu). */
 export function resetDb(): void {
   db = seed()

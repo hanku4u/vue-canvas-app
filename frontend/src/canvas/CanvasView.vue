@@ -11,7 +11,7 @@ import {
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
-import { NDropdown, type DropdownOption } from 'naive-ui'
+import { NDropdown, useMessage, type DropdownOption } from 'naive-ui'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
 import '@vue-flow/node-resizer/dist/style.css'
@@ -19,10 +19,11 @@ import '@vue-flow/node-resizer/dist/style.css'
 import { isDark } from '@/app/colorScheme'
 import { registerBuiltInComponents } from '@/components'
 import { getDefinition, paletteDefinitions } from '@/registry/registry'
-import { useCanvasDocStore } from '@/stores/canvasDoc'
+import { GROUP_HEADER, useCanvasDocStore } from '@/stores/canvasDoc'
 import { useCanvasUiStore } from '@/stores/canvasUi'
 import { menuLabel } from '@/ui/menuLabel'
 import ComponentFrame from './ComponentFrame.vue'
+import GroupFrame from './GroupFrame.vue'
 import ZoomControls from './ZoomControls.vue'
 import { GRID, MAX_ZOOM, MIN_ZOOM, snap } from './geometry'
 import { provideLevelOfDetail, TINY_BELOW_ZOOM } from './lod'
@@ -38,6 +39,7 @@ const props = defineProps<{ canvasId: string }>()
 
 const store = useCanvasDocStore()
 const ui = useCanvasUiStore()
+const message = useMessage()
 ui.reset()
 
 const flowId = `canvas-${props.canvasId}`
@@ -72,16 +74,34 @@ provideLevelOfDetail(zoom)
 const nodes = shallowRef<Node[]>([])
 
 function rebuildNodes(): void {
-  nodes.value = store.ordered.map((c) => ({
-    id: c.id,
-    type: 'component',
-    position: { x: c.x, y: c.y },
-    width: c.w,
-    height: c.h,
-    zIndex: c.zIndex,
-    draggable: canEdit.value && c.access.canEdit,
-    data: { componentId: c.id },
+  // Groups are Vue Flow parent nodes and must come before their children.
+  const groupNodes: Node[] = store.orderedGroups.map((g) => ({
+    id: g.id,
+    type: 'group',
+    position: { x: g.x, y: g.y },
+    width: g.w,
+    height: g.collapsed ? GROUP_HEADER : g.h,
+    zIndex: g.zIndex,
+    draggable: canEdit.value,
+    data: { groupId: g.id },
   }))
+  const componentNodes: Node[] = store.ordered.map((c) => {
+    const group = c.groupId ? store.groups[c.groupId] : undefined
+    return {
+      id: c.id,
+      type: 'component',
+      position: { x: c.x, y: c.y },
+      width: c.w,
+      height: c.h,
+      zIndex: c.zIndex,
+      parentNode: group?.id,
+      // Collapsed groups hide (and unmount) their contents.
+      hidden: !!group?.collapsed,
+      draggable: canEdit.value && c.access.canEdit,
+      data: { componentId: c.id },
+    }
+  })
+  nodes.value = [...groupNodes, ...componentNodes]
 }
 
 watch(() => store.revision, rebuildNodes, { immediate: true })
@@ -97,7 +117,12 @@ watch(
  * measured DOM sizes (off-screen nodes are never rendered, so never measured).
  */
 function fitTo(ids?: string[], options: { maxZoom?: number; duration?: number } = {}): void {
-  const targets = store.ordered.filter((c) => !ids || ids.includes(c.id))
+  const targets = [
+    ...store.orderedGroups
+      .filter((g) => !ids || ids.includes(g.id))
+      .map((g) => ({ x: g.x, y: g.y, w: g.w, h: g.collapsed ? GROUP_HEADER : g.h })),
+    ...store.ordered.filter((c) => !ids || ids.includes(c.id)).map(store.absoluteRect),
+  ]
   if (!targets.length) return
   const x = Math.min(...targets.map((c) => c.x))
   const y = Math.min(...targets.map((c) => c.y))
@@ -123,7 +148,11 @@ function onInit(): void {
 }
 
 function onDragStop({ nodes: dragged }: NodeDragEvent): void {
-  store.updateGeometry(dragged.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y })))
+  // Absolute positions: dropping a component on a group frame (or outside its group)
+  // changes membership (docs/canvas-ux.md, Groups).
+  store.finishDrag(
+    dragged.map((n) => ({ id: n.id, x: n.computedPosition.x, y: n.computedPosition.y })),
+  )
 }
 
 // Persist the viewport after it settles. Watched (not the viewportChangeEnd event) because
@@ -160,7 +189,26 @@ function onPaneClick(): void {
 }
 
 function deleteSelected(): void {
-  store.removeComponents(selectedIds())
+  store.removeSelection(selectedIds())
+}
+
+/** Ctrl/⌘+G: put the selected components in a new group, then select the group. */
+function groupSelected(): void {
+  const ids = selectedIds().filter((id) => store.components[id])
+  const result = store.groupComponents(ids)
+  if ('id' in result) void nextTick(() => selectOnly([result.id]))
+  else if (ids.length) message.warning(result.error)
+}
+
+/** Ctrl/⌘+Shift+G: remove the selected groups (and groups of selected components). */
+function ungroupSelected(): void {
+  const ids = selectedIds()
+  const groupIds = new Set(ids.filter((id) => store.groups[id]))
+  for (const id of ids) {
+    const groupId = store.components[id]?.groupId
+    if (groupId) groupIds.add(groupId)
+  }
+  store.ungroup([...groupIds])
 }
 
 function duplicateSelected(): void {
@@ -185,19 +233,23 @@ function onPointerLeave(): void {
 
 function copySelected(): number {
   const ids = selectedIds()
-  const selected = store.ordered.filter((c) => ids.includes(c.id))
+  // Copies carry absolute positions; pasted components join whatever group they land in.
+  const selected = store.ordered
+    .filter((c) => ids.includes(c.id))
+    .map((c) => ({ ...c, ...store.absolute(c), groupId: null }))
   if (selected.length) writeClipboard(toClipboard(props.canvasId, selected))
   return selected.length
 }
 
 function cutSelected(): void {
-  if (copySelected()) deleteSelected()
+  if (!copySelected()) return
+  store.removeComponents(selectedIds())
 }
 
 function paste(): void {
   const payload = readClipboard()
   if (!payload || !canEdit.value) return
-  const created = store.addComponents(pasteInputs(payload, pointer))
+  const created = store.placeComponents(pasteInputs(payload, pointer))
   if (created.length) void nextTick(() => selectOnly(created.map((c) => c.id)))
 }
 
@@ -211,16 +263,18 @@ function addComponentAt(type: string, center: { x: number; y: number }): string 
   if (!definition) return null
   const config = definition.defaultConfig()
   const { w, h } = definition.defaultSize
-  const component = store.addComponent({
-    type,
-    title: definition.defaultTitle?.(config) ?? definition.label,
-    x: snap(center.x - w / 2),
-    y: snap(center.y - h / 2),
-    w,
-    h,
-    config,
-    configVersion: definition.configVersion,
-  })
+  const [component] = store.placeComponents([
+    {
+      type,
+      title: definition.defaultTitle?.(config) ?? definition.label,
+      x: snap(center.x - w / 2),
+      y: snap(center.y - h / 2),
+      w,
+      h,
+      config,
+      configVersion: definition.configVersion,
+    },
+  ])
   if (!component) return null
   void nextTick(() => {
     selectOnly([component.id])
@@ -320,7 +374,19 @@ function closeMenu(): void {
 const menuOptions = computed<DropdownOption[]>(() => {
   if (menu.value.kind === 'node') {
     const editableSelected = getSelectedNodes.value.some((n: GraphNode) => n.draggable)
+    const ids = getSelectedNodes.value.map((n: GraphNode) => n.id)
+    const hasComponents = ids.some((id) => store.components[id])
+    const hasGroups = ids.some((id) => store.groups[id] || store.components[id]?.groupId)
     return [
+      ...(canEdit.value && hasComponents
+        ? [{ key: 'group', label: menuLabel('Group', { hint: 'Ctrl/⌘ G' }) }]
+        : []),
+      ...(canEdit.value && hasGroups
+        ? [{ key: 'ungroup', label: menuLabel('Ungroup', { hint: 'Ctrl/⌘ Shift G' }) }]
+        : []),
+      ...(canEdit.value && (hasComponents || hasGroups)
+        ? [{ key: 'd0', type: 'divider' as const }]
+        : []),
       { key: 'copy', label: menuLabel('Copy', { hint: 'Ctrl/⌘ C' }) },
       {
         key: 'cut',
@@ -405,6 +471,12 @@ function onMenuSelect(key: string): void {
     case 'copy':
       copySelected()
       break
+    case 'group':
+      groupSelected()
+      break
+    case 'ungroup':
+      ungroupSelected()
+      break
     case 'cut':
       cutSelected()
       break
@@ -452,6 +524,8 @@ const shortcuts = (): Shortcut[] => [
   },
   { combo: ['delete', 'backspace'], description: 'Delete selection', handler: deleteSelected },
   { combo: 'mod+d', description: 'Duplicate selection', handler: duplicateSelected },
+  { combo: 'mod+g', description: 'Group selection', handler: groupSelected },
+  { combo: 'mod+shift+g', description: 'Ungroup', handler: ungroupSelected },
   { combo: 'mod+c', description: 'Copy selection', handler: () => void copySelected() },
   { combo: 'mod+x', description: 'Cut selection', handler: cutSelected },
   { combo: 'mod+v', description: 'Paste', handler: paste },
@@ -527,6 +601,9 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
     >
       <template #node-component="nodeProps">
         <ComponentFrame v-bind="nodeProps" />
+      </template>
+      <template #node-group="nodeProps">
+        <GroupFrame v-bind="nodeProps" />
       </template>
 
       <Background variant="dots" :gap="GRID" :size="1.3" :pattern-color="patternColor" />

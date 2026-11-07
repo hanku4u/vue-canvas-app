@@ -12,7 +12,7 @@ function setup(send: (ops: CanvasOp[]) => Promise<OpsResult>, debounceMs = 0) {
   const sent: CanvasOp[][] = []
   const deps: CanvasSyncDeps = {
     canvasId: 'c1',
-    components: () => components,
+    doc: () => ({ components, groups: {} }),
     debounceMs,
     send: async (_id, ops) => {
       sent.push(ops)

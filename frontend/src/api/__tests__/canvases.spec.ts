@@ -302,3 +302,91 @@ describe('component ops', () => {
     localStorage.removeItem('mock.failOps')
   })
 })
+
+describe('group ops', () => {
+  const group = (id: string) => ({ id, title: 'Etch', x: 100, y: 100, w: 400, h: 300, zIndex: 0 })
+  const note = (id: string, groupId: string | null, x = 10, y = 50) => ({
+    id,
+    type: 'note',
+    title: 'Note',
+    groupId,
+    x,
+    y,
+    w: 100,
+    h: 100,
+    zIndex: 1,
+    config: {},
+    configVersion: 1,
+  })
+
+  it('creates a group and a component inside it in one batch', async () => {
+    as('j.doe')
+    const result = await applyOps(EMPTY, [
+      { op: 'group.create', group: group('g1') },
+      { op: 'component.create', component: note('n1', 'g1') },
+    ])
+    expect(result.versions).toEqual({ g1: 1, n1: 1 })
+    const canvas = await getCanvas(EMPTY)
+    expect(canvas.groups).toEqual([
+      expect.objectContaining({ id: 'g1', title: 'Etch', version: 1 }),
+    ])
+    expect(canvas.components[0]?.groupId).toBe('g1')
+  })
+
+  it('rejects unknown groups and rolls back the whole batch', async () => {
+    as('j.doe')
+    const error = await apiErrorOf(
+      applyOps(EMPTY, [
+        { op: 'group.create', group: group('g1') },
+        { op: 'component.create', component: note('n1', 'nope') },
+      ]),
+    )
+    expect(error.code).toBe('INVALID_OP')
+    expect((await getCanvas(EMPTY)).groups).toEqual([])
+  })
+
+  it('ungroup detaches remaining children to absolute positions', async () => {
+    as('j.doe')
+    await applyOps(EMPTY, [
+      { op: 'group.create', group: group('g1') },
+      { op: 'component.create', component: note('n1', 'g1', 10, 50) },
+    ])
+    await applyOps(EMPTY, [{ op: 'group.delete', id: 'g1', version: 1, mode: 'ungroup' }])
+    const canvas = await getCanvas(EMPTY)
+    expect(canvas.groups).toEqual([])
+    expect(canvas.components[0]).toMatchObject({ groupId: null, x: 110, y: 150, version: 2 })
+  })
+
+  it('refuses to delete contents the caller cannot edit', async () => {
+    as('j.doe')
+    await applyOps(SEEDED, [
+      { op: 'group.create', group: group('g1') },
+      {
+        op: 'component.update',
+        id: 'c-et03-excursion-p3',
+        version: 1,
+        set: { groupId: 'g1' },
+      },
+    ])
+    // k.lee (editor) can't edit p3 (edit-restricted).
+    as('k.lee')
+    const error = await apiErrorOf(
+      applyOps(SEEDED, [{ op: 'group.delete', id: 'g1', version: 1, mode: 'withContents' }]),
+    )
+    expect(error).toMatchObject({ status: 403, code: 'CONTAINS_UNEDITABLE' })
+    // Ungrouping is fine.
+    await applyOps(SEEDED, [{ op: 'group.delete', id: 'g1', version: 1, mode: 'ungroup' }])
+  })
+
+  it('versions group updates', async () => {
+    as('j.doe')
+    await applyOps(EMPTY, [{ op: 'group.create', group: group('g1') }])
+    await applyOps(EMPTY, [{ op: 'group.update', id: 'g1', version: 1, set: { collapsed: true } }])
+    const stale = await apiErrorOf(
+      applyOps(EMPTY, [{ op: 'group.update', id: 'g1', version: 1, set: { title: 'x' } }]),
+    )
+    expect(stale.details).toMatchObject({
+      conflicts: [{ id: 'g1', current: { id: 'g1', collapsed: true, version: 2 } }],
+    })
+  })
+})

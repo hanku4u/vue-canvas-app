@@ -137,7 +137,13 @@ The batch is all-or-nothing. Rules the frontend relies on:
 - **Missing components:** an update or delete of a component that no longer exists, or that the caller can no longer see, is also a `409`, with `current: null`. The client can then drop its copy or create it again.
 - **Re-creating a deleted id:** `component.create` may reuse the id of a component that was deleted (undo of a delete). Creating an id that currently exists is `400 INVALID_OP`.
 - **Response versions:** the `200` response's `versions` contains the new version of every created or updated component (created ones start at 1), plus `"canvas"` when the canvas itself was updated. Deleted components are not listed.
-- **Coalescing:** the client merges edits per component before sending. A batch never contains two ops for the same component.
+- **Coalescing:** the client merges edits per entity before sending. A batch never contains two ops for the same component or group.
+- **Order:** ops apply in sequence, so a component may join a group created earlier in the same batch. The client sends group creates, then component creates and updates, group updates, component deletes, and group deletes last. The batch is still atomic: any failure rolls everything back.
+- **Group references:** `groupId` must be `null` or a group on the same canvas (`400 INVALID_OP` otherwise). Component `x`/`y` are relative to the group.
+- **`group.delete` modes:**
+  - `ungroup` detaches whatever is still in the group, including components the caller can't see, to the canvas at the same absolute position, bumping their versions.
+  - `withContents` deletes them. It is refused with `403 CONTAINS_UNEDITABLE` if any remaining child isn't editable by the caller.
+  - The client moves out or deletes the children it can see in the same batch, before the `group.delete`.
 
 ### `DELETE /api/canvases/{id}`
 

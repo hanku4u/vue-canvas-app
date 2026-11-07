@@ -1,8 +1,8 @@
 import { ref, type Ref } from 'vue'
 import { applyOps } from '@/api/canvases'
 import { ApiError } from '@/api/client'
-import type { CanvasComponent, CanvasOp, OpsResult, VersionConflict } from '@/api/types'
-import type { Transaction } from './ops'
+import type { CanvasOp, OpsResult, VersionConflict } from '@/api/types'
+import type { DocState, Transaction } from './ops'
 import { buildOps, PendingChanges, snapshotIds, type PendingSnapshot } from './pending'
 
 /**
@@ -17,7 +17,8 @@ export type SaveStatus = 'saved' | 'pending' | 'saving' | 'offline' | 'conflict'
 
 export interface CanvasSyncDeps {
   canvasId: string
-  components: () => Record<string, CanvasComponent>
+  /** The current local document (wire ops are built from it at send time). */
+  doc: () => DocState
   /** A batch was saved; apply the new server versions. */
   onSaved: (ops: CanvasOp[], result: OpsResult) => void
   /** The server reported version conflicts; resolve them, then call `resolved()`. */
@@ -77,7 +78,7 @@ export function createCanvasSync(deps: CanvasSyncDeps): CanvasSync {
     if (inflight || disposed || pending.isEmpty) return
     if (status.value === 'conflict' || status.value === 'error') return
     const snapshot = pending.take()
-    const ops = buildOps(snapshot, deps.components())
+    const ops = buildOps(snapshot, deps.doc())
     if (!ops.length) {
       status.value = idleStatus()
       return

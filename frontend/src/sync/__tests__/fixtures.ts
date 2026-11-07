@@ -1,4 +1,5 @@
-import type { CanvasComponent } from '@/api/types'
+import type { CanvasComponent, CanvasGroup } from '@/api/types'
+import type { DocState } from '@/sync/ops'
 
 /** A saved component for tests. */
 export function makeComponent(
@@ -23,4 +24,29 @@ export function makeComponent(
     updatedAt: '2026-11-07T00:00:00Z',
     ...overrides,
   }
+}
+
+/** A saved group for tests. */
+export function makeGroup(id: string, overrides: Partial<CanvasGroup> = {}): CanvasGroup {
+  return {
+    id,
+    title: id,
+    x: 0,
+    y: 0,
+    w: 400,
+    h: 300,
+    zIndex: 0,
+    collapsed: false,
+    defaultFilters: {},
+    version: 1,
+    ...overrides,
+  }
+}
+
+/** A document from components (and optionally groups). */
+export function docOf(
+  components: Record<string, CanvasComponent>,
+  groups: Record<string, CanvasGroup> = {},
+): DocState {
+  return { components, groups }
 }
