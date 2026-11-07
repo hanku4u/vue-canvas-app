@@ -71,7 +71,23 @@ export function effectiveParams(
   return params
 }
 
-/** Required params without a value. */
+/**
+ * Required params without a value. For a `requiredGroup` with no values at all, a single
+ * entry is returned whose label lists the alternatives ("Lots or Wafers").
+ */
 export function missingRequired(dataset: Dataset, params: Record<string, unknown>): DatasetParam[] {
-  return dataset.params.filter((p) => p.required && isEmpty(params[p.name]))
+  const missing = dataset.params.filter((p) => p.required && isEmpty(params[p.name]))
+  const groups = new Map<string, DatasetParam[]>()
+  for (const p of dataset.params) {
+    if (p.requiredGroup) groups.set(p.requiredGroup, [...(groups.get(p.requiredGroup) ?? []), p])
+  }
+  for (const members of groups.values()) {
+    if (members.every((p) => isEmpty(params[p.name]))) {
+      missing.push({
+        ...members[0]!,
+        label: members.map((p) => p.label ?? p.name).join(' or '),
+      })
+    }
+  }
+  return missing
 }

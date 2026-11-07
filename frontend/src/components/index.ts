@@ -5,6 +5,7 @@ import { dataPreviewDefinition } from './data-preview'
 import { noteDefinition } from './note'
 import { placeholderDefinition } from './placeholder'
 import { tableDefinition } from './table'
+import { waferMapDefinition } from './wafer-map'
 
 /**
  * Built-in component types, in palette order. Adding a type = a folder under
@@ -14,6 +15,7 @@ const builtIns: ComponentDefinition<ComponentConfig>[] = [
   noteDefinition as unknown as ComponentDefinition<ComponentConfig>,
   chartDefinition as unknown as ComponentDefinition<ComponentConfig>,
   tableDefinition as unknown as ComponentDefinition<ComponentConfig>,
+  waferMapDefinition as unknown as ComponentDefinition<ComponentConfig>,
   dataPreviewDefinition as unknown as ComponentDefinition<ComponentConfig>,
   placeholderDefinition as unknown as ComponentDefinition<ComponentConfig>,
 ]

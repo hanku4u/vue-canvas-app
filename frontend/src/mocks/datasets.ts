@@ -248,6 +248,7 @@ export const MOCK_DATASETS: MockDataset[] = [
         required: false,
         filter: 'lot_id',
         valuesFrom: null,
+        requiredGroup: 'target',
       },
       {
         name: 'wafer',
@@ -256,6 +257,7 @@ export const MOCK_DATASETS: MockDataset[] = [
         required: false,
         filter: 'wafer_id',
         valuesFrom: null,
+        requiredGroup: 'target',
       },
     ],
     columns: [

@@ -68,3 +68,33 @@ describe('effectiveParams', () => {
     expect(missingRequired(dataset, params).map((p) => p.name)).toEqual(['lot'])
   })
 })
+
+describe('required groups', () => {
+  it('needs at least one param of the group', () => {
+    const grouped: Dataset = {
+      ...dataset,
+      params: [
+        {
+          name: 'lot',
+          label: 'Lots',
+          type: 'string[]',
+          required: false,
+          filter: null,
+          valuesFrom: null,
+          requiredGroup: 't',
+        },
+        {
+          name: 'wafer',
+          label: 'Wafers',
+          type: 'string[]',
+          required: false,
+          filter: null,
+          valuesFrom: null,
+          requiredGroup: 't',
+        },
+      ],
+    }
+    expect(missingRequired(grouped, {}).map((p) => p.label)).toEqual(['Lots or Wafers'])
+    expect(missingRequired(grouped, { wafer: ['A1.01'] })).toEqual([])
+  })
+})

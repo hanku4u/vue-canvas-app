@@ -341,6 +341,7 @@ export function shapeRows(rows: Row[], columns: ColumnDef[], shape: Shape): Shap
         out.push({
           wafer_id: shape.mode === 'stacked' ? 'stacked' : first[waferKey],
           lot_id: first.lot_id ?? null,
+          unit: first.unit ?? null,
           x: num(first[shape.x]),
           y: num(first[shape.y]),
           value: round(aggregated, 4),
@@ -352,6 +353,7 @@ export function shapeRows(rows: Row[], columns: ColumnDef[], shape: Shape): Shap
       const cols: ColumnDef[] = [
         { name: 'wafer_id', type: 'string' },
         { name: 'lot_id', type: 'string' },
+        { name: 'unit', type: 'string' },
         { name: 'x', type: 'int' },
         { name: 'y', type: 'int' },
         { name: 'value', type: 'float' },

@@ -187,6 +187,8 @@ export interface DatasetParam {
   values?: string[]
   /** Default value; datetimes may be relative ("now", "-7d", "-24h"). */
   default?: unknown
+  /** At least one param of the same group must have a value (e.g. lots *or* wafers). */
+  requiredGroup?: string
 }
 
 export type ColumnType = 'string' | 'int' | 'float' | 'bool' | 'datetime'

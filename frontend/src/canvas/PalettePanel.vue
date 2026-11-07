@@ -32,7 +32,6 @@ function onDragStart(event: DragEvent, type: string): void {
       </template>
       {{ item.description }} Click to add, or drag onto the canvas.
     </NTooltip>
-    <p class="palette__soon">Chart, table and wafer map arrive in F7–F9.</p>
   </nav>
 </template>
 
@@ -68,11 +67,5 @@ function onDragStart(event: DragEvent, type: string): void {
 
 .palette__item :deep(.n-icon) {
   color: var(--app-primary);
-}
-
-.palette__soon {
-  margin: 8px 4px 0;
-  font-size: 12px;
-  color: var(--app-text-muted);
 }
 </style>

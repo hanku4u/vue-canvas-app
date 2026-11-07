@@ -225,7 +225,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Level of detail, decided:** previews switch on zoom level only, not during pan and zoom gestures. Vue Flow pans with a CSS transform, so live charts aren't re-rendered while panning, and remounting them after every gesture would cost more than it saves.
 - Point-click and brush publishing are configured in the schema (`publish`, `publishTimeRange`) and wired in F10.
 
-## F9: Wafer map component · L
+## F9: Wafer map component · L ✅
 
 **Scope** (spec: [components.md](components.md#wafer-map))
 - Canvas 2D renderer with DPR scaling, grid from x/y extents, fitted wafer outline and notch marker, orientation flips.
@@ -235,6 +235,14 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - `wafer` shape requests. Snapshot for preview.
 
 **Done when:** a lot from the excursion window shows its 25 wafers in gallery mode with the edge ring visible on the chamber-C wafers. Stacked mode across those wafers shows the ring averaged.
+
+**As built (`src/components/wafer-map/`):**
+- **Drawing:** Canvas 2D at device pixel ratio, one cell per die, with a fitted outline and notch and optional die grid. Mirroring (x and y) replaces "orientation flips". Hover finds the die by grid lookup.
+- **Colors:** a one-hue sequential blue scale or a blue ↔ gray ↔ red diverging scale (symmetric around a center, the median by default), per the dataviz rules. Viridis and Turbo from the original spec were dropped: rainbow scales distort perceived differences. The range is min–max, p1–p99 (default) or fixed, and values outside it are clamped and flagged in the legend. One scale is shared by all maps on screen, so wafers can be compared.
+- **Modes:** *One wafer* (picker plus previous/next), *All wafers* (gallery of up to 25 per page, paged past that) and *Stacked* (per-die aggregate). Gallery tiles aren't lazy-rendered: the 25-per-page cap keeps the cost fixed (about 45k dies per page).
+- **Selection:** clicking a wafer selects it (Shift / Ctrl / ⌘ adds), recorded in `canvasUi.rowSelections` as `{ wafer_id, lot_id }` for F10 publishing.
+- **Required parameters:** datasets can mark "at least one of" params (`requiredGroup`). `wafer_dies` needs lots *or* wafers, and the component asks for them instead of showing an upstream error.
+- **Mock:** the wafer shape carries `unit` for the legend.
 
 ## F10: Filters and cross-filtering · L
 
