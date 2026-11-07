@@ -4,6 +4,7 @@ import { NButton, NDropdown, NIcon, NTag, NTooltip, type DropdownOption } from '
 import { Copy, Ellipsis, FolderOpen, Pencil, Trash } from '@lucide/vue'
 import type { CanvasSummary } from '@/api/types'
 import { formatDateTime, formatRelativeTime, pluralize } from '@/ui/format'
+import { menuLabel } from '@/ui/menuLabel'
 import { canvasCan, roleLabel } from './permissions'
 
 export type CanvasCardAction = 'open' | 'rename' | 'duplicate' | 'delete'
@@ -26,7 +27,7 @@ const menu = computed<DropdownOption[]>(() => {
     items.push({ key: 'd', type: 'divider' })
     items.push({
       key: 'delete',
-      label: () => h('span', { style: 'color: var(--app-danger)' }, 'Delete'),
+      label: menuLabel('Delete', { danger: true }),
       icon: icon(Trash),
     })
   }

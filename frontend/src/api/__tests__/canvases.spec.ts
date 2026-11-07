@@ -44,9 +44,10 @@ describe('canvas lists', () => {
     expect(mine.items.map((c) => c.id)).toEqual(['c-et03-excursion', 'c-yield-review'])
     expect(mine.items.every((c) => c.role === 'owner')).toBe(true)
     expect(shared.items).toHaveLength(1)
+    // j.doe holds a viewer share here, but as an admin their effective role is 'admin'.
     expect(shared.items[0]).toMatchObject({
       id: 'c-litho-weekly',
-      role: 'viewer',
+      role: 'admin',
       owner: { knoxId: 'k.lee', displayName: 'Kim Lee' },
     })
   })
@@ -131,6 +132,8 @@ describe('canvas permissions', () => {
 describe('duplicate', () => {
   it('copies only visible components, without restrictions, owned by the caller', async () => {
     const db = getDb()
+    db.components = {}
+    db.acl = []
     const base = {
       canvasId: 'c-et03-excursion',
       groupId: null,

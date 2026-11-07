@@ -31,6 +31,7 @@ import {
   canvasRole,
   canViewCanvas,
   canViewComponent,
+  shareRole,
 } from '../permissions'
 
 const MAX_TITLE = 120
@@ -200,9 +201,8 @@ export const canvasHandlers = [
     const matches = Object.values(getDb().canvases)
       .filter((c) => c.deletedAt === null)
       .filter((c) => {
-        const role = canvasRole(user.knoxId, c)
-        if (scope === 'mine') return role === 'owner'
-        if (scope === 'shared') return role === 'editor' || role === 'viewer'
+        if (scope === 'mine') return c.ownerId === user.knoxId
+        if (scope === 'shared') return c.ownerId !== user.knoxId && !!shareRole(user.knoxId, c)
         return true
       })
       .filter(

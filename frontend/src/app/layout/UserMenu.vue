@@ -3,10 +3,11 @@ import { computed, h, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { NAvatar, NButton, NDropdown, NIcon, useMessage, type DropdownOption } from 'naive-ui'
-import { Check, Database, Monitor, Moon, Sun, UserRound } from '@lucide/vue'
+import { Database, Monitor, Moon, Sun, UserRound } from '@lucide/vue'
 import { useMe } from '@/api/me'
 import { DEV_USERS, getDevKnoxId, setDevKnoxId } from '@/api/devIdentity'
 import { colorSchemePreference, type ColorSchemePreference } from '@/app/colorScheme'
+import { menuLabel } from '@/ui/menuLabel'
 
 const isDev = import.meta.env.DEV
 const isMockApi = import.meta.env.VITE_API_MOCK === '1'
@@ -28,8 +29,6 @@ const initials = computed(() => {
 function icon(component: Component) {
   return () => h(NIcon, null, { default: () => h(component, { size: 16 }) })
 }
-
-const check = icon(Check)
 
 const schemes: { key: ColorSchemePreference; label: string; icon: Component }[] = [
   { key: 'light', label: 'Light', icon: Sun },
@@ -61,9 +60,8 @@ const options = computed<DropdownOption[]>(() => {
       icon: icon(colorSchemePreference.value === 'dark' ? Moon : Sun),
       children: schemes.map((scheme) => ({
         key: `theme:${scheme.key}`,
-        label: scheme.label,
+        label: menuLabel(scheme.label, { checked: colorSchemePreference.value === scheme.key }),
         icon: icon(scheme.icon),
-        extra: colorSchemePreference.value === scheme.key ? check : undefined,
       })),
     },
   ]
@@ -74,8 +72,9 @@ const options = computed<DropdownOption[]>(() => {
       icon: icon(UserRound),
       children: DEV_USERS.map((devUser) => ({
         key: `user:${devUser.knoxId}`,
-        label: `${devUser.displayName} · ${devUser.knoxId} (${devUser.note})`,
-        extra: currentDevUser === devUser.knoxId ? check : undefined,
+        label: menuLabel(`${devUser.displayName} · ${devUser.knoxId} (${devUser.note})`, {
+          checked: currentDevUser === devUser.knoxId,
+        }),
       })),
     })
   }

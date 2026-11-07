@@ -48,3 +48,27 @@ body {
   background: var(--app-bg);
   -webkit-font-smoothing: antialiased;
 }
+
+/* Dropdown labels with a shortcut hint or check mark (src/ui/menuLabel.ts). Dropdowns are
+   teleported to <body>, so these styles are global. */
+.menu-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+}
+
+.menu-label--danger {
+  color: var(--app-danger);
+}
+
+.menu-label__hint {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+.menu-label__check {
+  color: var(--app-primary);
+}

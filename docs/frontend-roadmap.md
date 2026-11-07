@@ -73,7 +73,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 
 **Done when:** you can create a canvas, see it listed, open its (empty) editor route, rename and delete it, all against MSW.
 
-## F2: Canvas core · M
+## F2: Canvas core · M ✅
 
 **Scope**
 - Vue Flow canvas with background dot grid, minimap and zoom controls. Zoom range 10–200%.
@@ -84,6 +84,14 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - Placeholder nodes (plain boxes) to exercise all of the above.
 
 **Done when:** 50 placeholder nodes can be panned, zoomed, selected, moved and resized smoothly. The viewport is restored on reload.
+
+**As built:**
+- Edits live in the `canvasDoc` Pinia store and are local only. A "Not saved" tag shows in the top bar until F4 adds persistence.
+- Vue Flow owns positions during a gesture, and the store is updated when the gesture ends. That is the natural point to emit one op per gesture in F4.
+- Fit and zoom-to-selection compute bounds from the store, not Vue Flow's `fitView`. Off-screen nodes are never rendered (visible-only rendering), so Vue Flow has never measured them.
+- The viewport is saved from a debounced watcher. Vue Flow's `viewportChangeEnd` doesn't fire for programmatic zooms.
+- Placeholders are added from the right-click menu (plus "Add 50 placeholders" in dev builds). The seed "ET-03 CD excursion" canvas has three, one of them edit-restricted.
+- Measured: with 50 placeholders all on screen, wheel-panning runs at a steady 16.7 ms per frame (headless Chromium).
 
 ## F3: Component framework and Note · M
 

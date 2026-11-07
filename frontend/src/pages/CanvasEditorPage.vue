@@ -1,17 +1,27 @@
 <script setup lang="ts">
-// Canvas editor shell. The canvas itself (Vue Flow) arrives in roadmap F2; for now this
-// loads the canvas, handles not-found, and offers the canvas-level actions.
-import { computed, h, type Component } from 'vue'
+// Canvas editor: loads the canvas into the document store and renders the infinite canvas.
+// F2: edits are local only; saving through ops arrives in F4.
+import { computed, h, watch, type Component } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NDropdown, NEmpty, NIcon, NSpin, NTag, type DropdownOption } from 'naive-ui'
+import {
+  NButton,
+  NDropdown,
+  NEmpty,
+  NIcon,
+  NSpin,
+  NTag,
+  NTooltip,
+  type DropdownOption,
+} from 'naive-ui'
 import { ArrowLeft, Copy, Ellipsis, Pencil, Trash } from '@lucide/vue'
 import { useCanvas } from '@/api/canvases'
 import { ApiError } from '@/api/client'
 import DefaultLayout from '@/app/layout/DefaultLayout.vue'
+import CanvasView from '@/canvas/CanvasView.vue'
+import { useCanvasDocStore } from '@/stores/canvasDoc'
 import CanvasNameDialog from '@/ui/canvases/CanvasNameDialog.vue'
 import { canvasCan, roleLabel } from '@/ui/canvases/permissions'
 import { useCanvasActions } from '@/ui/canvases/useCanvasActions'
-import { formatRelativeTime, pluralize } from '@/ui/format'
 import { describeError } from '@/ui/useApiErrorNotifier'
 import StatusPage from './StatusPage.vue'
 
@@ -20,6 +30,20 @@ const props = defineProps<{ id: string }>()
 const router = useRouter()
 const canvas = useCanvas(() => props.id)
 const actions = useCanvasActions({ onDeleted: () => void router.push({ name: 'home' }) })
+
+const store = useCanvasDocStore()
+
+// Load into the store when a canvas opens. Later refetches (e.g. after a rename) must not
+// overwrite local edits, so only (re)load when the canvas id changes.
+watch(
+  () => canvas.data.value,
+  (value) => {
+    if (value && store.canvas?.id !== value.id) store.load(value)
+  },
+  { immediate: true },
+)
+
+const ready = computed(() => !!canvas.data.value && store.canvas?.id === props.id)
 
 const notFound = computed(
   () => canvas.error.value instanceof ApiError && canvas.error.value.status === 404,
@@ -69,6 +93,14 @@ function back(): void {
       <template v-if="canvas.data.value">
         <h1 class="editor__title" data-testid="canvas-title">{{ canvas.data.value.title }}</h1>
         <NTag size="small" :bordered="false">{{ roleLabel[canvas.data.value.role] }}</NTag>
+        <NTooltip v-if="store.dirty">
+          <template #trigger>
+            <NTag size="small" type="warning" :bordered="false" data-testid="unsaved-tag">
+              Not saved
+            </NTag>
+          </template>
+          Layout changes are local to this tab for now. Saving arrives in roadmap milestone F4.
+        </NTooltip>
       </template>
     </template>
     <template #top-right>
@@ -87,7 +119,8 @@ function back(): void {
       </NDropdown>
     </template>
 
-    <div class="editor">
+    <CanvasView v-if="ready" :key="id" :canvas-id="id" />
+    <div v-else class="editor">
       <NSpin v-if="canvas.isPending.value" />
       <NEmpty
         v-else-if="canvas.isError.value"
@@ -95,19 +128,6 @@ function back(): void {
       >
         <template #extra>
           <NButton size="small" @click="canvas.refetch()">Retry</NButton>
-        </template>
-      </NEmpty>
-      <NEmpty
-        v-else-if="canvas.data.value"
-        description="The infinite canvas arrives in roadmap milestone F2."
-        data-testid="editor-placeholder"
-      >
-        <template #extra>
-          <p class="editor__meta">
-            Owner {{ canvas.data.value.owner.displayName }} ·
-            {{ pluralize(canvas.data.value.components.length, 'component') }} · edited
-            {{ formatRelativeTime(canvas.data.value.updatedAt) }}
-          </p>
         </template>
       </NEmpty>
     </div>
@@ -139,11 +159,5 @@ function back(): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.editor__meta {
-  margin: 0;
-  color: var(--app-text-muted);
-  font-size: 13px;
 }
 </style>

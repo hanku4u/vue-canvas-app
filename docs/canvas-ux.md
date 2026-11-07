@@ -71,6 +71,8 @@ See [admin.md](admin.md).
 
 Zoom range is 10%–200%. Below about 50%, components switch to their lightweight preview.
 
+Dragging a component you can't move (viewer, or the component is locked) pans the canvas instead. The viewport (position and zoom) is remembered per canvas in this browser.
+
 ### Wheel and drag inside components
 
 Charts and tables also use the wheel and drag (zooming a chart, scrolling a table). The rule:

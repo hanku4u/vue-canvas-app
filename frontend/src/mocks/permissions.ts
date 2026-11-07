@@ -5,12 +5,20 @@
 import type { CanvasRole } from '@/api/types'
 import { getDb, isAdmin, type MockCanvas, type MockComponent } from './db'
 
-/** Role from ownership or a share; admin-only access is reported as 'admin'. */
+/** The caller's share on a canvas (ignoring ownership and admin rights), if any. */
+export function shareRole(knoxId: string, canvas: MockCanvas): 'editor' | 'viewer' | null {
+  const share = getDb().shares.find((s) => s.canvasId === canvas.id && s.knoxId === knoxId)
+  return share?.role ?? null
+}
+
+/**
+ * Effective role: owner, then admin (admins can do everything, even where they also hold
+ * a viewer share), then the share role.
+ */
 export function canvasRole(knoxId: string, canvas: MockCanvas): CanvasRole | null {
   if (canvas.ownerId === knoxId) return 'owner'
-  const share = getDb().shares.find((s) => s.canvasId === canvas.id && s.knoxId === knoxId)
-  if (share) return share.role
-  return isAdmin(knoxId) ? 'admin' : null
+  if (isAdmin(knoxId)) return 'admin'
+  return shareRole(knoxId, canvas)
 }
 
 function isOwnerOrAdmin(knoxId: string, canvas: MockCanvas): boolean {

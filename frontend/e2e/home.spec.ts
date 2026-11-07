@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 // Each test gets a fresh browser context, so the MSW mock starts from its seed data:
-// j.doe owns 2 canvases and can view "Litho weekly" (owned by k.lee).
+// j.doe (an admin) owns 2 canvases and has a viewer share on "Litho weekly" (owned by k.lee).
 
 const mine = (page: Page) => page.getByTestId('section-mine')
 const shared = (page: Page) => page.getByTestId('section-shared')
@@ -40,7 +40,7 @@ test('creates a canvas and opens it', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/canvas\/.+/)
   await expect(page.getByTestId('canvas-title')).toHaveText('Overlay drift on LI-02')
-  await expect(page.getByTestId('editor-placeholder')).toBeVisible()
+  await expect(page.getByTestId('canvas-view')).toBeVisible()
 
   await page.getByRole('button', { name: 'Back to canvases' }).click()
   await expect(mine(page).getByRole('article')).toHaveCount(3)
@@ -84,8 +84,10 @@ test('renames, duplicates and deletes from the card menu', async ({ page }) => {
 })
 
 test('viewers only get open and duplicate', async ({ page }) => {
+  // m.park is a viewer on "ET-03 CD excursion" (j.doe is an admin, so has full rights everywhere).
+  await page.addInitScript(() => localStorage.setItem('dev.knoxId', 'm.park'))
   await page.goto('/')
-  await openCardMenu(page, 'Litho weekly')
+  await openCardMenu(page, 'ET-03 CD excursion')
   const options = page.locator('.n-dropdown-option')
   await expect(options).toHaveText(['Open', 'Duplicate'])
 })

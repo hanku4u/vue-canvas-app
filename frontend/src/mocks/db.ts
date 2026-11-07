@@ -86,7 +86,7 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = 'mock.db'
-const DB_VERSION = 2
+const DB_VERSION = 4
 
 /** Always admins, mirroring BOOTSTRAP_ADMINS on the backend. */
 export const BOOTSTRAP_ADMINS = ['j.doe']
@@ -125,6 +125,39 @@ function seedCanvas(
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
+  }
+}
+
+function seedPlaceholder(
+  canvasId: string,
+  title: string,
+  x: number,
+  y: number,
+  zIndex: number,
+  restrictions: Partial<Pick<MockComponent, 'viewRestricted' | 'editRestricted'>> = {},
+): MockComponent {
+  const ts = hoursAgo(2)
+  return {
+    id: `${canvasId}-p${zIndex + 1}`,
+    canvasId,
+    groupId: null,
+    type: 'placeholder',
+    title,
+    x,
+    y,
+    w: 320,
+    h: 208,
+    zIndex,
+    config: {},
+    configVersion: 1,
+    viewRestricted: false,
+    editRestricted: false,
+    ...restrictions,
+    version: 1,
+    createdBy: 'j.doe',
+    updatedBy: 'j.doe',
+    createdAt: ts,
+    updatedAt: ts,
   }
 }
 
@@ -170,7 +203,17 @@ function seed(): MockDb {
       { canvasId: 'c-cmp-monitor', knoxId: 'k.lee', role: 'editor' },
     ],
     groups: {},
-    components: {},
+    // Stand-ins until real component types exist (F3+). The third one is edit-restricted
+    // with an empty ACL: locked for editors (k.lee), still editable by the owner and admins.
+    components: Object.fromEntries(
+      [
+        seedPlaceholder('c-et03-excursion', 'SPC – CD_MEAN (soon)', 0, 0, 0),
+        seedPlaceholder('c-et03-excursion', 'Lot table (soon)', 352, 0, 1),
+        seedPlaceholder('c-et03-excursion', 'Wafer maps (soon)', 0, 240, 2, {
+          editRestricted: true,
+        }),
+      ].map((c) => [c.id, c]),
+    ),
     acl: [],
   }
 }
