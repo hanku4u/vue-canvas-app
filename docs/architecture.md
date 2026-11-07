@@ -70,7 +70,7 @@ The **mock data API** lets frontend and backend be developed and demoed without 
 | Notes | `markdown-it` + DOMPurify |
 | Validation | Zod (component configs) |
 | Large payloads | `apache-arrow` (decoding Arrow IPC) |
-| UI kit | PrimeVue (proposed, see DD-015) |
+| UI kit | Naive UI (DD-015) |
 
 Reasoning for each is in [design-decisions.md](design-decisions.md).
 

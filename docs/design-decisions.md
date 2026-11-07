@@ -20,7 +20,7 @@ A running log of significant decisions. Each entry records the context, the choi
 | DD-012 | No data-level security in v1 | Proposed |
 | DD-013 | Filters are session state; saved defaults are explicit | Proposed |
 | DD-014 | Charts: ECharts · Tables: AG Grid Community · Wafer maps: custom Canvas 2D | Proposed |
-| DD-015 | UI kit: PrimeVue | Proposed |
+| DD-015 | UI kit: Naive UI | Accepted |
 | DD-016 | TanStack Query for server data on the client | Proposed |
 | DD-017 | In-process caching first, Redis later | Proposed |
 | DD-018 | Query and audit logging in PostgreSQL | Proposed |
@@ -196,13 +196,17 @@ A running log of significant decisions. Each entry records the context, the choi
 
 ---
 
-## DD-015: UI kit: PrimeVue
+## DD-015: UI kit: Naive UI
 
-**Decision:** PrimeVue (styled mode with a custom theme) for dialogs, menus, forms, multi-selects, date pickers, toasts and the admin tables.
+**Decision:** Naive UI for dialogs, menus, forms, multi-selects, date pickers, notifications and the admin tables. Theming uses `NConfigProvider` overrides (`src/app/theme.ts`). The app's own components use CSS tokens in `src/app/styles.css` that follow the same light and dark scheme.
 
-**Why:** broad, data-oriented component set, including a good multi-select with virtual scroll and a date-range picker, which the filter bar needs. Actively maintained for Vue 3.
+**Why:** MIT-licensed, TypeScript-first, Vue 3 only, with a compact, data-dense component set. It includes a virtual-scrolling multi-select and a date-range picker, which the filter bar needs. Built-in dark theme.
 
-**Alternatives:** Naive UI (good, smaller ecosystem), Vuetify (Material look, heavier), headless (Radix Vue + Tailwind; most flexible, most work).
+**Superseded:** PrimeVue was the original proposal. PrimeVue 5 moved to a commercial license (key required; free tier only for organizations under $1M revenue and under 10 employees), which doesn't fit a company deployment. PrimeVue 4.5.5, the last MIT release, was rejected because it is frozen.
+
+**Alternatives:** PrimeVue 4.5.5 (MIT but frozen), Vuetify (Material look, heavier), Reka UI + Tailwind (headless; most flexible, most work), Element Plus (MIT, less compact).
+
+**Note:** Naive UI's `NGlobalStyle` is not used. It animates the body background on load, which flashes light → dark. Base body styles live in `styles.css` instead.
 
 ---
 

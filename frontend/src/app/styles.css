@@ -1,0 +1,48 @@
+/*
+ * Global base styles (we don't use Naive UI's NGlobalStyle: it animates the body
+ * background on load, which flashes light → dark).
+ *
+ * App-level design tokens for our own components (canvas, chrome, panels).
+ * Naive UI components are themed separately via src/app/theme.ts.
+ */
+:root {
+  --app-font:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --app-bg: #f8fafc;
+  --app-panel-bg: #ffffff;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-primary: #4f46e5;
+}
+
+:root.app-dark {
+  --app-bg: #101014;
+  --app-panel-bg: #18181c;
+  --app-border: #3f3f46;
+  --app-text: #fafafa;
+  --app-text-muted: #a1a1aa;
+  --app-primary: #818cf8;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--app-font);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--app-text);
+  background: var(--app-bg);
+  -webkit-font-smoothing: antialiased;
+}

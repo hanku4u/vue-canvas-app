@@ -51,10 +51,10 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 
 ---
 
-## F0: Project setup · S
+## F0: Project setup · S ✅
 
 **Scope**
-- `frontend/` with Vite, Vue 3, TypeScript (strict), vue-router, Pinia, `@tanstack/vue-query`, PrimeVue (custom theme tokens, light and dark), Zod.
+- `frontend/` with Vite, Vue 3, TypeScript (strict), vue-router, Pinia, `@tanstack/vue-query`, Naive UI (theme overrides, light and dark), Zod.
 - ESLint, Prettier, `vue-tsc` typecheck. Vitest + Vue Test Utils. Playwright.
 - MSW set up with the mock toggle. Vite proxy for `/api` (FastAPI) and `/mock-data` (mock data API, for the MSW query handler).
 - Folder structure from [architecture.md](architecture.md#modules).
