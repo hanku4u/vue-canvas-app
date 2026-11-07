@@ -78,6 +78,7 @@ const query = useComponentQuery({
   componentId: computed(() => props.component.id),
   dataset: computed(() => props.config.dataset),
   params: computed(() => props.config.params),
+  bindings: computed(() => props.config.bindings),
   shape,
   refreshSec: computed(() => refreshSeconds(props.config.refresh)),
 })

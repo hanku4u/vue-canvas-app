@@ -1,4 +1,4 @@
-import type { CanvasComponent, CanvasGroup } from '@/api/types'
+import type { Canvas, CanvasComponent, CanvasGroup } from '@/api/types'
 
 /**
  * Local operations on the canvas document. Every edit is expressed as ops so that the same
@@ -29,7 +29,11 @@ export const GROUP_FIELDS = [
   'defaultFilters',
 ] as const
 
+export const CANVAS_FIELDS = ['title', 'description', 'defaultFilters'] as const
+
 export type ComponentField = (typeof COMPONENT_FIELDS)[number]
+export type CanvasField = (typeof CANVAS_FIELDS)[number]
+export type CanvasFields = Pick<Canvas, CanvasField>
 export type ComponentFields = Pick<CanvasComponent, ComponentField>
 export type GroupField = (typeof GROUP_FIELDS)[number]
 export type GroupFields = Pick<CanvasGroup, GroupField>
@@ -49,6 +53,7 @@ export type LocalOp =
   | { kind: 'createGroup'; group: CanvasGroup }
   | { kind: 'deleteGroup'; group: CanvasGroup; mode: GroupDeleteMode }
   | { kind: 'updateGroup'; id: string; before: Partial<GroupFields>; after: Partial<GroupFields> }
+  | { kind: 'updateCanvas'; before: Partial<CanvasFields>; after: Partial<CanvasFields> }
 
 /** Ops that form one user action, and one undo step. */
 export type Transaction = LocalOp[]
@@ -57,6 +62,8 @@ export type Transaction = LocalOp[]
 export interface DocState {
   components: Record<string, CanvasComponent>
   groups: Record<string, CanvasGroup>
+  /** Canvas metadata (title, description, default filters, version). */
+  canvas?: (CanvasFields & { version: number }) | null
 }
 
 /** Deep copy of plain JSON data (also strips Vue reactive proxies). */
@@ -82,6 +89,8 @@ export function invert(op: LocalOp): LocalOp {
       return { kind: 'createGroup', group: op.group }
     case 'updateGroup':
       return { kind: 'updateGroup', id: op.id, before: op.after, after: op.before }
+    case 'updateCanvas':
+      return { kind: 'updateCanvas', before: op.after, after: op.before }
   }
 }
 
@@ -115,6 +124,9 @@ export function applyOp(doc: DocState, op: LocalOp): void {
       if (group) Object.assign(group, clone(op.after))
       break
     }
+    case 'updateCanvas':
+      if (doc.canvas) Object.assign(doc.canvas, clone(op.after))
+      break
   }
 }
 
@@ -154,6 +166,15 @@ export function updateGroupOp(
 ): Extract<LocalOp, { kind: 'updateGroup' }> | null {
   const changes = diff(group, GROUP_FIELDS, patch)
   return changes ? { kind: 'updateGroup', id: group.id, ...changes } : null
+}
+
+/** Like updateOp, for the canvas itself. */
+export function updateCanvasOp(
+  canvas: CanvasFields,
+  patch: Partial<CanvasFields>,
+): Extract<LocalOp, { kind: 'updateCanvas' }> | null {
+  const changes = diff(canvas, CANVAS_FIELDS, patch)
+  return changes ? { kind: 'updateCanvas', ...changes } : null
 }
 
 /**

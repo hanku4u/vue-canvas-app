@@ -170,6 +170,10 @@ For each component and each dimension it binds, the effective value is the first
 5. Canvas saved default
 6. Dimension default (from `filters.yaml`)
 
+The dimension default is the weakest level: it only fills a param the component left empty, so a component's own "From: 30 days ago" survives a "last 7 days" default. Levels 1–5 always win over the component's param, and the inspector shows that param as read-only ("Filter: Last 30 days") with an **Unlink** action.
+
+**Self-exclusion:** a value published by a component never filters that component. Resolution skips it and falls through to the next level. Selecting lots in a table therefore filters the rest of the group, not the table itself.
+
 Session values live in the client only (canvas-level ones are mirrored in the URL). Saved defaults are stored on the canvas or group and change only when an editor clicks "Save as default".
 
 **Relative time ranges** (`last_7d`) are stored as relative and resolved to absolute timestamps on the client at query time, rounded down to the minute so cache keys stay stable.

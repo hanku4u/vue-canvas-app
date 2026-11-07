@@ -14,6 +14,7 @@ import { UndoHistory } from '@/sync/history'
 import {
   applyOp,
   clone,
+  updateCanvasOp,
   updateGroupOp,
   updateOp,
   type DocState,
@@ -55,6 +56,10 @@ export interface Rect extends Point {
 }
 
 export const MAX_TITLE = 120
+
+function pickCanvasFields(c: Canvas): Pick<Canvas, 'title' | 'description' | 'defaultFilters'> {
+  return { title: c.title, description: c.description, defaultFilters: c.defaultFilters }
+}
 
 /** Offset for duplicated components, so the copy is visibly separate. */
 const DUPLICATE_OFFSET = 32
@@ -116,7 +121,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
   )
 
   function doc(): DocState {
-    return { components: components.value, groups: groups.value }
+    return { components: components.value, groups: groups.value, canvas: canvas.value }
   }
 
   function configure(value: StoreOptions): void {
@@ -195,7 +200,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
         if (canvas.value) canvas.value.revision = result.revision
       },
       onConflict: (list) => {
-        conflicts.value = list.filter((c) => c.id !== 'canvas')
+        conflicts.value = list
       },
       onRejected: (error) => {
         rejection.value = error
@@ -240,7 +245,16 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
       load(remote)
       return
     }
-    canvas.value = { ...remote, components: [], groups: [] }
+    const keep = sync.value?.hasPending('canvas') && canvas.value
+    canvas.value = keep
+      ? {
+          ...remote,
+          ...pickCanvasFields(canvas.value!),
+          version: canvas.value!.version,
+          components: [],
+          groups: [],
+        }
+      : { ...remote, components: [], groups: [] }
     const groupsChanged = mergeEntities(
       groups.value,
       remote.groups,
@@ -265,6 +279,20 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     if (!engine) return
     for (const conflict of conflicts.value) {
       const id = conflict.id
+      if (id === 'canvas') {
+        // Canvas metadata (title / default filters): theirs replaces ours, or ours goes on
+        // top of their version.
+        const current = conflict.current as ({ version: number } & Partial<Canvas>) | null
+        if (choice === 'theirs') {
+          engine.pending.forget('canvas')
+          if (current && canvas.value) {
+            canvas.value = { ...canvas.value, ...current, components: [], groups: [] }
+          }
+        } else if (current && canvas.value) {
+          canvas.value.version = current.version
+        }
+        continue
+      }
       const current = conflict.current as (CanvasComponent | CanvasGroup) | null
       const isGroup =
         id in groups.value || (!!current && 'collapsed' in current && !('type' in current))
@@ -520,6 +548,23 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
   const sendToBack = (ids: string[]) => restack(ids, 'back')
 
   // -------------------------------------------------------------------------
+  // Saved default filters (docs/canvas-ux.md, Filters: "Save as default")
+  // -------------------------------------------------------------------------
+
+  function setCanvasDefaultFilters(filters: Canvas['defaultFilters']): void {
+    if (!canvas.value || !canEdit.value) return
+    const op = updateCanvasOp(canvas.value, { defaultFilters: filters })
+    if (op) commit([op])
+  }
+
+  function setGroupDefaultFilters(id: string, filters: CanvasGroup['defaultFilters']): void {
+    const group = groups.value[id]
+    if (!group || !canEdit.value) return
+    const op = updateGroupOp(group, { defaultFilters: filters })
+    if (op) commit([op])
+  }
+
+  // -------------------------------------------------------------------------
   // Groups (docs/canvas-ux.md, "Groups")
   // -------------------------------------------------------------------------
 
@@ -720,5 +765,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     renameGroup,
     setGroupCollapsed,
     updateGroupGeometry,
+    setCanvasDefaultFilters,
+    setGroupDefaultFilters,
   }
 })

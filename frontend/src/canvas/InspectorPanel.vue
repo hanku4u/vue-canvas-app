@@ -277,6 +277,7 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
           :data-kind="definition.dataKind"
           :dataset="String(resolved.config.dataset ?? '')"
           :params="(resolved.config.params as Record<string, unknown>) ?? {}"
+          :bindings="(resolved.config.bindings as Record<string, boolean>) ?? {}"
           :editable="editable"
           @change="(patch) => (configError = store.updateConfig(single!.id, patch))"
         />

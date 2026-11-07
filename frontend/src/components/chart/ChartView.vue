@@ -8,7 +8,10 @@ import { isDark } from '@/app/colorScheme'
 import { useDatasets } from '@/data/query'
 import { useComponentQuery } from '@/data/useComponentQuery'
 import type { ComponentViewProps } from '@/registry/types'
+import { useCanvasDocStore } from '@/stores/canvasDoc'
+import { useCanvasUiStore } from '@/stores/canvasUi'
 import { useComponentDataStore } from '@/stores/componentData'
+import { useFiltersStore } from '@/stores/filters'
 import { STATUS, chartTokens, ColorSlots } from '@/ui/vizPalette'
 import DataStateView from '../shared/DataStateView.vue'
 import { refreshSeconds } from '../shared/dataConfig'
@@ -23,6 +26,9 @@ registerECharts()
 const props = defineProps<ComponentViewProps<ChartConfig>>()
 
 const dataStore = useComponentDataStore()
+const doc = useCanvasDocStore()
+const ui = useCanvasUiStore()
+const filters = useFiltersStore()
 
 // Session zoom on a time axis: refetches that range at full resolution.
 const xRange = ref<[string, string] | null>(null)
@@ -36,6 +42,7 @@ const query = useComponentQuery({
   componentId: computed(() => props.component.id),
   dataset: computed(() => props.config.dataset),
   params: computed(() => props.config.params),
+  bindings: computed(() => props.config.bindings),
   shape: computed(() =>
     dataset.value
       ? chartShape(props.config.kind, fields.value, {
@@ -97,15 +104,41 @@ function syncZoomCursor(): void {
 
 watch(() => [props.active, built.value], syncZoomCursor)
 
+function publishScope(): string {
+  const groupId = doc.components[props.component.id]?.groupId
+  return groupId && doc.groups[groupId] ? groupId : 'canvas'
+}
+
 function onDataZoom(event: unknown): void {
   const range = (event as { batch?: { startValue?: number; endValue?: number }[] }).batch?.[0]
   if (!timeAxis.value || range?.startValue === undefined || range.endValue === undefined) return
   xRange.value = [new Date(range.startValue).toISOString(), new Date(range.endValue).toISOString()]
+  if (props.config.publishTimeRange) {
+    filters.publish(props.component.id, publishScope(), 'time_range', {
+      start: xRange.value[0],
+      end: xRange.value[1],
+    })
+  }
 }
 
 function resetZoom(): void {
   xRange.value = null
+  filters.publish(props.component.id, publishScope(), 'time_range', null)
 }
+
+/** Clicking a point selects its row (published per the `publish` rules); again clears. */
+function onPointClick(event: unknown): void {
+  const data = (event as { data?: unknown }).data
+  const index = Array.isArray(data) ? data[2] : undefined
+  const result = query.result.value
+  if (typeof index !== 'number' || !result) return
+  const row = Object.fromEntries(Object.entries(result.data).map(([k, v]) => [k, v[index]]))
+  const current = ui.rowSelections[props.component.id]?.[0]
+  const same = current && JSON.stringify(current) === JSON.stringify(row)
+  ui.setRowSelection(props.component.id, same ? [] : [row])
+}
+
+const selectedPoint = computed(() => ui.rowSelections[props.component.id]?.[0])
 
 // Snapshot for the zoomed-out preview, after each render with new data.
 let snapshotFor: unknown = null
@@ -145,6 +178,7 @@ const meta = computed(() => query.result.value?.meta)
         :update-options="{ notMerge: true }"
         autoresize
         @datazoom="onDataZoom"
+        @click="onPointClick"
         @finished="onFinished"
         @zr:dblclick="resetZoom"
       />
@@ -175,6 +209,15 @@ const meta = computed(() => query.result.value?.meta)
           Downsampled on the server (LTTB) for display; spikes and excursions are kept. Box-zoom to
           see a range at full resolution.
         </NTooltip>
+        <NButton
+          v-if="selectedPoint"
+          size="tiny"
+          class="nodrag"
+          data-testid="chart-selection"
+          @click.stop="ui.setRowSelection(component.id, [])"
+        >
+          {{ String(selectedPoint.lot_id ?? selectedPoint.wafer_id ?? 'Point') }} selected ✕
+        </NButton>
         <NButton
           v-if="xRange"
           size="tiny"

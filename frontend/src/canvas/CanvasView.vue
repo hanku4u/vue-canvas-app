@@ -21,6 +21,7 @@ import { registerBuiltInComponents } from '@/components'
 import { getDefinition, paletteDefinitions } from '@/registry/registry'
 import { GROUP_HEADER, useCanvasDocStore } from '@/stores/canvasDoc'
 import { useCanvasUiStore } from '@/stores/canvasUi'
+import { usePublishing } from '@/filters/usePublishing'
 import { menuLabel } from '@/ui/menuLabel'
 import ComponentFrame from './ComponentFrame.vue'
 import GroupFrame from './GroupFrame.vue'
@@ -58,6 +59,7 @@ const {
 } = useVueFlow(flowId)
 
 useModifierKeys()
+usePublishing()
 
 const savedViewport = loadViewport(props.canvasId)
 const canEdit = computed(() => store.canEdit)
@@ -337,6 +339,12 @@ function addPlaceholderAt(x: number, y: number): void {
 defineExpose({
   /** Add a component in the middle of the visible canvas (palette click). */
   addAtCenter: (type: string) => addComponentAt(type, viewportCenter()),
+  /** Bring a component into view and select it (e.g. the source of a filter chip). */
+  locate: (id: string) => {
+    if (!store.components[id]) return
+    fitTo([id], { maxZoom: 1, duration: 300 })
+    selectOnly([id])
+  },
 })
 
 // ---------------------------------------------------------------------------

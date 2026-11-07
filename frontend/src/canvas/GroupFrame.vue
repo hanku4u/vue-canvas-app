@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilterChips from '@/filters/FilterChips.vue'
 import { computed, h, nextTick, ref, type Component } from 'vue'
 import { NodeResizer, type OnResizeStart } from '@vue-flow/node-resizer'
 import { NButton, NDropdown, NIcon, useMessage, type DropdownOption } from 'naive-ui'
@@ -146,6 +147,7 @@ defineExpose({ startRename })
         {{ group.title }}
       </span>
       <span class="group__count" data-testid="group-count">{{ childCount }}</span>
+      <FilterChips v-if="!group.collapsed" :scope="group.id" compact class="group__filters" />
       <NDropdown
         v-if="editable"
         trigger="click"
@@ -199,7 +201,7 @@ defineExpose({ startRename })
 }
 
 .group__title {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -230,5 +232,9 @@ defineExpose({ startRename })
   color: var(--app-text-muted);
   font-size: 12px;
   text-align: center;
+}
+.group__filters {
+  flex: 1;
+  margin-left: 4px;
 }
 </style>

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { NSelect, type SelectOption } from 'naive-ui'
 import { useDatasets } from '@/data/query'
 import type { ComponentViewProps } from '@/registry/types'
+import PublishRules from '../shared/PublishRules.vue'
 import { resolveChartFields } from './fields'
 import type { ChartConfig } from './schema'
 
@@ -117,6 +118,14 @@ function setLimit(name: keyof ChartConfig['limits'], value: string): void {
         </label>
       </div>
     </template>
+    <PublishRules
+      :dataset="dataset"
+      :rules="config.publish"
+      :editable="editable"
+      title="Clicked point sets filters"
+      hint="E.g. clicking a point sets the Lot filter to that point's lot."
+      @change="(publish) => emit('update-config', { publish })"
+    />
   </div>
 </template>
 

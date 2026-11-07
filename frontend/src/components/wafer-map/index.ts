@@ -1,5 +1,6 @@
 import { CircleDot } from '@lucide/vue'
 import type { ComponentDefinition } from '@/registry/types'
+import WaferMapInspector from './WaferMapInspector.vue'
 import WaferMapPreview from './WaferMapPreview.vue'
 import WaferMapView from './WaferMapView.vue'
 import { waferMapConfigSchema, type WaferMapConfig } from './schema'
@@ -17,5 +18,6 @@ export const waferMapDefinition: ComponentDefinition<WaferMapConfig> = {
   defaultTitle: () => 'Wafer map',
   view: WaferMapView,
   preview: WaferMapPreview,
+  inspector: WaferMapInspector,
   dataKind: 'wafer-map',
 }

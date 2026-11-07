@@ -8,6 +8,8 @@ import { z } from 'zod'
 export const dataConfigFields = {
   dataset: z.string().default('').meta({ 'x-inspector': false }),
   params: z.record(z.string(), z.unknown()).default({}).meta({ 'x-inspector': false }),
+  /** Params set to false don't follow their filter dimension (default: all follow). */
+  bindings: z.record(z.string(), z.boolean()).default({}).meta({ 'x-inspector': false }),
   refresh: z
     .enum(['off', '60', '300', '900'])
     .default('off')

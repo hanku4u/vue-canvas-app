@@ -73,6 +73,7 @@ const query = useComponentQuery({
   componentId: computed(() => props.component.id),
   dataset: computed(() => props.config.dataset),
   params: computed(() => props.config.params),
+  bindings: computed(() => props.config.bindings),
   shape: computed(() => tableShape(0, props.config.pageSize)),
   refreshSec: computed(() => refreshSeconds(props.config.refresh)),
 })
@@ -277,7 +278,7 @@ const totalRows = computed(() => query.result.value?.meta.totalRows ?? 0)
         />
       </div>
       <footer class="table__footer" data-testid="table-footer">
-        <span>{{ totalRows.toLocaleString() }} rows</span>
+        <span>{{ totalRows.toLocaleString() }} {{ totalRows === 1 ? 'row' : 'rows' }}</span>
         <span v-if="selectedCount" data-testid="table-selected"
           >· {{ selectedCount }} selected</span
         >

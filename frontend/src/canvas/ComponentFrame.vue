@@ -13,7 +13,11 @@ import {
   SearchCode,
   Trash,
   TriangleExclamationPoint,
+  Funnel,
 } from '@lucide/vue'
+import { useFilterDimensions } from '@/filters/dimensions'
+import { levelLabel } from '@/filters/resolve'
+import { describeFilter } from '@/filters/values'
 import { getDefinition, resolveConfig } from '@/registry/registry'
 import type { ComponentConfig } from '@/registry/types'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
@@ -47,6 +51,26 @@ const now = useNow()
 const dataInfo = computed(() => dataStore.byId.get(props.id))
 const dataAge = computed(() => shortAge(dataInfo.value?.meta?.asOf, now.value))
 const showDetails = ref(false)
+
+// Footer: the filters this component follows right now (docs/canvas-ux.md, Filters).
+const dimensions = useFilterDimensions()
+const activeFilters = computed(() => {
+  const seen = new Set<string>()
+  const out: { dimension: string; label: string; value: string; title: string }[] = []
+  for (const b of dataInfo.value?.bindings ?? []) {
+    if (!b.level || !b.value || seen.has(b.dimension)) continue
+    seen.add(b.dimension)
+    const label = dimensions.data.value?.find((d) => d.id === b.dimension)?.label ?? b.dimension
+    const from = b.source ? store.components[b.source]?.title : undefined
+    out.push({
+      dimension: b.dimension,
+      label,
+      value: describeFilter(b.value),
+      title: `${label} filter from the ${levelLabel(b.level)}${from ? ` (selected in “${from}”)` : ''}`,
+    })
+  }
+  return out
+})
 
 const component = computed(() => store.components[props.data.componentId])
 const definition = computed(() =>
@@ -185,7 +209,12 @@ function onMenu(key: string): void {
   <div
     v-if="component"
     class="frame"
-    :class="{ 'is-selected': selected, 'is-active': active, 'is-dragging': dragging }"
+    :class="{
+      'is-selected': selected,
+      'is-active': active,
+      'is-dragging': dragging,
+      'is-highlighted': ui.highlightId === component.id,
+    }"
     :data-testid="`node-${component.id}`"
     :data-type="component.type"
     :data-lod="lod"
@@ -284,6 +313,21 @@ function onMenu(key: string): void {
         @update-config="onConfigUpdate"
       />
     </div>
+    <footer
+      v-if="activeFilters.length && lod === 'full'"
+      class="frame__footer"
+      data-testid="frame-filters"
+    >
+      <span
+        v-for="f in activeFilters"
+        :key="f.dimension"
+        class="frame__filter"
+        :data-dimension="f.dimension"
+        :title="f.title"
+      >
+        <NIcon :size="11"><Funnel /></NIcon>{{ f.label }}: {{ f.value }}
+      </span>
+    </footer>
   </div>
 </template>
 
@@ -310,6 +354,32 @@ function onMenu(key: string): void {
   box-shadow:
     0 0 0 1px var(--app-primary),
     0 0 0 4px color-mix(in srgb, var(--app-primary) 25%, transparent);
+}
+
+.frame.is-highlighted {
+  box-shadow:
+    0 0 0 2px var(--app-primary),
+    0 0 0 6px color-mix(in srgb, var(--app-primary) 30%, transparent);
+}
+
+.frame__footer {
+  display: flex;
+  gap: 10px;
+  overflow: hidden;
+  height: 22px;
+  padding: 0 10px;
+  align-items: center;
+  border-top: 1px solid var(--app-border);
+  font-size: 11px;
+  color: var(--app-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.frame__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .frame.is-dragging {

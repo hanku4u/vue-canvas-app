@@ -25,6 +25,8 @@ interface EntityPending<D> {
 export interface PendingSnapshot {
   components: EntityPending<{ version: number }>
   groups: EntityPending<{ version: number; mode: GroupDeleteMode }>
+  /** Canvas fields (title, description, defaultFilters) to send as canvas.update. */
+  canvas: Set<string>
 }
 
 function emptyEntity<D>(): EntityPending<D> {
@@ -32,7 +34,7 @@ function emptyEntity<D>(): EntityPending<D> {
 }
 
 function emptySnapshot(): PendingSnapshot {
-  return { components: emptyEntity(), groups: emptyEntity() }
+  return { components: emptyEntity(), groups: emptyEntity(), canvas: new Set() }
 }
 
 function isEmptyEntity(entity: EntityPending<unknown>): boolean {
@@ -110,10 +112,16 @@ export class PendingChanges {
   private state: PendingSnapshot = emptySnapshot()
 
   get isEmpty(): boolean {
-    return isEmptyEntity(this.state.components) && isEmptyEntity(this.state.groups)
+    return (
+      isEmptyEntity(this.state.components) &&
+      isEmptyEntity(this.state.groups) &&
+      this.state.canvas.size === 0
+    )
   }
 
+  /** Pending changes for an entity id ("canvas" for the canvas itself). */
   has(id: string): boolean {
+    if (id === 'canvas') return this.state.canvas.size > 0
     return entityHas(this.state.components, id) || entityHas(this.state.groups, id)
   }
 
@@ -132,6 +140,9 @@ export class PendingChanges {
         return recordUpdate(groups, op.id, Object.keys(op.after))
       case 'deleteGroup':
         return recordDelete(groups, op.group.id, { version: op.group.version, mode: op.mode })
+      case 'updateCanvas':
+        for (const field of Object.keys(op.after)) this.state.canvas.add(field)
+        return
     }
   }
 
@@ -149,10 +160,12 @@ export class PendingChanges {
   restore(older: PendingSnapshot): void {
     restoreEntity(this.state.components, older.components, COMPONENT_FIELDS)
     restoreEntity(this.state.groups, older.groups, GROUP_FIELDS)
+    for (const field of older.canvas) this.state.canvas.add(field)
   }
 
   /** Drop everything pending for one entity (conflict resolved as "keep theirs"). */
   forget(id: string): void {
+    if (id === 'canvas') this.state.canvas.clear()
     forgetEntity(this.state.components, id)
     forgetEntity(this.state.groups, id)
   }
@@ -179,6 +192,7 @@ export function snapshotIds(snapshot: PendingSnapshot): Set<string> {
     for (const id of entity.updates.keys()) ids.add(id)
     for (const id of entity.deletes.keys()) ids.add(id)
   }
+  if (snapshot.canvas.size) ids.add('canvas')
   return ids
 }
 
@@ -191,6 +205,14 @@ export function snapshotIds(snapshot: PendingSnapshot): Set<string> {
 export function buildOps(snapshot: PendingSnapshot, doc: DocState): CanvasOp[] {
   const ops: CanvasOp[] = []
   const { components, groups } = snapshot
+
+  if (snapshot.canvas.size && doc.canvas) {
+    const c = doc.canvas
+    const set = Object.fromEntries(
+      [...snapshot.canvas].map((field) => [field, clone(c[field as keyof typeof c])]),
+    )
+    ops.push({ op: 'canvas.update', version: c.version, set })
+  }
 
   for (const id of groups.creates) {
     const g = doc.groups[id]

@@ -3,6 +3,8 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { QueryRequest, QueryResult, Shape } from '@/api/types'
 import { useComponentDataStore, type DataState } from '@/stores/componentData'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
+import { paramsFromFilters } from '@/filters/bindings'
+import { useResolvedFilters } from '@/filters/useResolvedFilters'
 import { effectiveParams, missingRequired } from './params'
 import { postQuery, useDatasets } from './query'
 
@@ -11,6 +13,8 @@ export interface ComponentQueryOptions {
   dataset: Ref<string>
   /** Stored param values (may contain relative times). */
   params: Ref<Record<string, unknown>>
+  /** Which params follow their filter dimension (false = not); default all. */
+  bindings?: Ref<Record<string, boolean>>
   /** What to ask for; null while the component isn't ready to query. */
   shape: Ref<Shape | null>
   /** Auto-refresh interval in seconds (0 = off; values under 60 are ignored). */
@@ -36,9 +40,24 @@ export function useComponentQuery(options: ComponentQueryOptions) {
   const refreshTick = ref(0)
   let bypassCache = false
 
+  // Filters (canvas → group → component) override the params they're bound to.
+  const filters = useResolvedFilters({ componentId: () => options.componentId.value })
+  const fromFilters = computed(() =>
+    dataset.value
+      ? paramsFromFilters(
+          dataset.value,
+          filters.value,
+          options.bindings?.value ?? {},
+          options.params.value,
+        )
+      : { params: {}, bound: [] },
+  )
+
   const resolved = computed(() => {
     void refreshTick.value
-    return dataset.value ? effectiveParams(dataset.value, options.params.value) : {}
+    return dataset.value
+      ? effectiveParams(dataset.value, { ...options.params.value, ...fromFilters.value.params })
+      : {}
   })
   const missing = computed(() =>
     dataset.value ? missingRequired(dataset.value, resolved.value) : [],
@@ -119,6 +138,7 @@ export function useComponentQuery(options: ComponentQueryOptions) {
       request: request.value,
       meta: result.value?.meta ?? null,
       error: (query.error.value as Error | null) ?? null,
+      bindings: fromFilters.value.bound,
       refresh,
     })
   })
@@ -132,6 +152,7 @@ export function useComponentQuery(options: ComponentQueryOptions) {
     dataset,
     params: resolved,
     missing,
+    bindings: computed(() => fromFilters.value.bound),
     request,
     result,
     state,

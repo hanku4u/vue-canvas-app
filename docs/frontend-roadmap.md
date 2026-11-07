@@ -244,7 +244,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Required parameters:** datasets can mark "at least one of" params (`requiredGroup`). `wafer_dies` needs lots *or* wafers, and the component asks for them instead of showing an upstream error.
 - **Mock:** the wafer shape carries `unit` for the legend.
 
-## F10: Filters and cross-filtering · L
+## F10: Filters and cross-filtering · L ✅
 
 **Scope** (spec: [data-layer.md](data-layer.md#filters), [canvas-ux.md](canvas-ux.md#filters))
 - Dimension vocabulary from `GET /api/filters`. Value pickers (searchable multi-select with paste-a-list support, time range presets, number range).
@@ -261,6 +261,24 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 4. Selecting lots in the table updates a wafer-map gallery in the same group.
 5. The URL reproduces the view in a new tab.
 
+**As built (`src/filters/`, `stores/filters.ts`):**
+- **Vocabulary:** the mock serves `GET /api/filters` (time range, tool, chamber, lot, wafer, product, parameter) and `/api/filters/{id}/values` from the dataset values.
+- **Pickers:** a searchable multi-select where pasting a list adds every value, and time-range presets plus a custom range. Number ranges decode from URLs but have no picker yet: no dimension uses them.
+- **Resolution** (`resolve.ts`) and **bindings** (`bindings.ts`) are pure functions with unit tests for each precedence level, self-exclusion and the weak dimension default (see data-layer.md).
+- **Bindings:** every param with a `filter` hint follows its dimension by default. The inspector shows "Follows the Tool filter: ET-03 (canvas)" with Unlink/Link, stored as `config.bindings`. The component footer lists the filters applied right now.
+- **Chips:** the filter bar (canvas) and group headers show session values, published values (dashed, "· source title"; hovering highlights the source and double-clicking brings it into view) and saved defaults (muted). Anyone, viewers included, can change session filters.
+- **Publishing:** one watcher turns `canvasUi.rowSelections` into session filters in the component's scope (its group, else the canvas), per its `publish` rules. Sources:
+  - table rows
+  - chart point click (charts can also publish a box-zoomed time range with `publishTimeRange`)
+  - wafer click
+
+  A shared rules editor appears in each of those inspectors. Withdrawing a published chip clears the source's selection.
+- **Session vs saved:**
+  - Canvas session filters are mirrored in the URL (`?f.tool_id=ET-03&f.time_range=last_30d`; absolute ranges `start..end`).
+  - "Save as default" is a `canvas.update` op, with undo, conflicts and sync like any edit; groups have `setGroupDefaultFilters` in the store.
+  - Reset drops session values.
+  - Seeds and new canvases no longer store a "last 7 days" default: the dimension default covers it.
+- **Not yet:** group "Save as default" in the UI (store support only), per-component overrides UI (resolution supports `config.overrides`). A selection is withdrawn when its view unmounts (zooming out to previews).
 ## F11: Sharing and permissions UI · M
 
 **Scope** (spec: [permissions.md](permissions.md))

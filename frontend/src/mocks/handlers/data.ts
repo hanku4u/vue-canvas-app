@@ -111,7 +111,7 @@ function upstreamQuery(dataset: MockDataset, params: Record<string, unknown>): U
 // Upstream
 // ---------------------------------------------------------------------------
 
-async function fetchRows(
+export async function fetchRows(
   dataset: MockDataset,
   params: Record<string, unknown>,
   refresh: boolean,
@@ -161,7 +161,7 @@ async function fetchRows(
   return { entry, cacheHit: false }
 }
 
-function errorResponse(error: unknown) {
+export function errorResponse(error: unknown) {
   if (error instanceof QueryError) return apiError(error.status, error.code, error.message)
   return apiError(500, 'INTERNAL', String(error))
 }

@@ -485,7 +485,7 @@ export const canvasHandlers = [
       ownerId: user.knoxId,
       title,
       description,
-      defaultFilters: { time_range: { relative: 'last_7d' } },
+      defaultFilters: {},
       revision: 0,
       version: 1,
       createdAt: now,

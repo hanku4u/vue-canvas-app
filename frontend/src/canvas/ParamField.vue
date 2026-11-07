@@ -19,6 +19,8 @@ const props = defineProps<{
   param: DatasetParam
   value: unknown
   disabled?: boolean
+  /** Shown instead of the default when a filter sets this param (field read-only). */
+  filterValue?: string | null
 }>()
 const emit = defineEmits<{ change: [value: unknown] }>()
 
@@ -48,6 +50,7 @@ const options = computed<SelectOption[]>(() => {
 })
 
 const placeholder = computed(() => {
+  if (props.filterValue) return `Filter: ${props.filterValue}`
   const d = props.param.default
   if (d === undefined || d === null || d === '') return props.param.required ? 'Required' : 'Any'
   if (props.param.type === 'datetime' || props.param.type === 'date') {

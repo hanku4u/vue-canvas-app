@@ -2,6 +2,7 @@ import { shallowReactive } from 'vue'
 import { defineStore } from 'pinia'
 import type { ApiError } from '@/api/client'
 import type { QueryMeta, QueryRequest } from '@/api/types'
+import type { Binding } from '@/filters/bindings'
 
 export type DataState =
   'unconfigured' | 'missing' | 'loading' | 'refetching' | 'ready' | 'empty' | 'error'
@@ -13,6 +14,8 @@ export interface ComponentDataInfo {
   request: QueryRequest | null
   meta: QueryMeta | null
   error: ApiError | Error | null
+  /** Params following filter dimensions, and where their values come from. */
+  bindings: Binding[]
   refresh: () => void
 }
 

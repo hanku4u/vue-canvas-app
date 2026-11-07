@@ -60,9 +60,10 @@ test('column filters page through the filtered rows', async ({ page }) => {
   await page.locator('.ag-header-cell[col-id=status] .ag-header-cell-filter-button').click()
   await page.locator('.ag-filter input[type=text]').first().fill('COMPLETE')
   await expect(footer(page)).toContainText('filtered')
-  const after = Number((await footer(page).textContent())?.replace(/\D/g, ''))
-  expect(after).toBeGreaterThan(0)
-  expect(after).toBeLessThan(before)
+  const count = async () =>
+    Number((await footer(page).textContent())?.match(/([\d,]+) rows?/)?.[1]?.replace(/,/g, ''))
+  await expect.poll(count).toBeLessThan(before)
+  expect(await count()).toBeGreaterThan(0)
   await expect(cell(page, 0, 'status')).toHaveText('COMPLETE')
 })
 

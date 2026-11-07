@@ -27,6 +27,9 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
    * Rows selected inside data components (e.g. table rows), keyed by component id.
    * Publishing them into filters is wired in F10.
    */
+  /** Component to highlight (e.g. the source of a hovered filter chip). */
+  const highlightId = ref<string | null>(null)
+
   const rowSelections = ref<Record<string, Record<string, unknown>[]>>({})
 
   function setRowSelection(componentId: string, rows: Record<string, unknown>[]): void {
@@ -40,5 +43,14 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
     rowSelections.value = {}
   }
 
-  return { selectedIds, activeId, rowSelections, setSelection, activate, setRowSelection, reset }
+  return {
+    selectedIds,
+    activeId,
+    highlightId,
+    rowSelections,
+    setSelection,
+    activate,
+    setRowSelection,
+    reset,
+  }
 })

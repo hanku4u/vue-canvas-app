@@ -291,3 +291,18 @@ export interface ValuesResponse {
   values: string[]
   truncated: boolean
 }
+
+// ---------------------------------------------------------------------------
+// Filter dimensions (docs/data-layer.md#filters)
+// ---------------------------------------------------------------------------
+
+export type FilterDimensionType = 'string_list' | 'time_range' | 'number_range'
+
+export interface FilterDimension {
+  id: string
+  label: string
+  type: FilterDimensionType
+  /** Values can be looked up with GET /api/filters/{id}/values. */
+  hasValues: boolean
+  default: FilterValue | null
+}

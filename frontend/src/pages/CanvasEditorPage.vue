@@ -30,6 +30,9 @@ import CanvasNameDialog from '@/ui/canvases/CanvasNameDialog.vue'
 import { canvasCan, roleLabel } from '@/ui/canvases/permissions'
 import { useCanvasActions } from '@/ui/canvases/useCanvasActions'
 import { describeError, useApiErrorNotifier } from '@/ui/useApiErrorNotifier'
+import FilterBar from '@/filters/FilterBar.vue'
+import { useFilterUrl } from '@/filters/useFilterUrl'
+import { useFiltersStore } from '@/stores/filters'
 import StatusPage from './StatusPage.vue'
 
 const props = defineProps<{ id: string }>()
@@ -44,6 +47,15 @@ const canvas = useCanvas(() => props.id)
 const actions = useCanvasActions({ onDeleted: () => void router.push({ name: 'home' }) })
 
 const store = useCanvasDocStore()
+
+// Session filters belong to one canvas visit; canvas-level ones live in the URL.
+const filterStore = useFiltersStore()
+filterStore.reset()
+watch(
+  () => props.id,
+  () => filterStore.reset(),
+)
+useFilterUrl()
 const canvasView = ref<InstanceType<typeof CanvasView> | null>(null)
 
 // First load replaces the document; later refetches (window focus, after a rename) are
@@ -254,7 +266,10 @@ function back(): void {
         <PalettePanel @add="(type) => canvasView?.addAtCenter(type)" />
       </SidePanel>
       <div class="editor-layout__canvas">
-        <CanvasView ref="canvasView" :key="id" :canvas-id="id" />
+        <FilterBar @locate="(cid) => canvasView?.locate(cid)" />
+        <div class="editor-layout__flow">
+          <CanvasView ref="canvasView" :key="id" :canvas-id="id" />
+        </div>
       </div>
       <SidePanel side="right" title="Inspector" storage-key="ui.panel.inspector" :width="280">
         <InspectorPanel />
@@ -296,8 +311,16 @@ function back(): void {
 }
 
 .editor-layout__canvas {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+.editor-layout__flow {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .editor {

@@ -86,7 +86,7 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = 'mock.db'
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 /** Always admins, mirroring BOOTSTRAP_ADMINS on the backend. */
 export const BOOTSTRAP_ADMINS = ['j.doe']
@@ -119,7 +119,7 @@ function seedCanvas(
     ownerId,
     title,
     description,
-    defaultFilters: { time_range: { relative: 'last_7d' } },
+    defaultFilters: {},
     revision: 1,
     version: 1,
     createdAt: ts,
