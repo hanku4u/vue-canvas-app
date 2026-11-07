@@ -109,7 +109,8 @@ test('switching user changes canvases and admin access', async ({ page }) => {
 test('admins can open the admin area', async ({ page }) => {
   await page.goto('/')
   await page.getByTestId('admin-link').click()
-  await expect(page.getByTestId('admin-placeholder')).toBeVisible()
+  await expect(page.getByTestId('admin-nav')).toBeVisible()
+  await expect(page).toHaveURL(/\/admin\/usage/)
 })
 
 test('unknown canvases and routes show not found', async ({ page }) => {

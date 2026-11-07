@@ -74,10 +74,27 @@ export interface MockAcl {
   access: 'view' | 'edit'
 }
 
+export interface MockAdmin {
+  knoxId: string
+  grantedBy: string
+  grantedAt: string
+}
+
+export interface MockAudit {
+  id: string
+  ts: string
+  actor: string
+  action: string
+  /** What was acted on, e.g. "canvas:c-et03-excursion" or "user:k.lee". */
+  target: string
+  details: Record<string, unknown>
+}
+
 export interface MockDb {
   version: number
   users: Record<string, MockUser>
-  admins: string[]
+  admins: MockAdmin[]
+  audit: MockAudit[]
   canvases: Record<string, MockCanvas>
   shares: MockShare[]
   groups: Record<string, MockGroup>
@@ -86,7 +103,7 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = 'mock.db'
-const DB_VERSION = 7
+const DB_VERSION = 9
 
 /** Always admins, mirroring BOOTSTRAP_ADMINS on the backend. */
 export const BOOTSTRAP_ADMINS = ['j.doe']
@@ -96,6 +113,7 @@ const KNOWN_NAMES: Record<string, string> = {
   'k.lee': 'Kim Lee',
   'm.park': 'Min Park',
   's.choi': 'Sam Choi',
+  'a.kim': 'Ari Kim',
 }
 
 export function newId(): string {
@@ -194,7 +212,25 @@ function seed(): MockDb {
   return {
     version: DB_VERSION,
     users,
-    admins: [],
+    admins: [{ knoxId: 'a.kim', grantedBy: 'j.doe', grantedAt: hoursAgo(24 * 40) }],
+    audit: [
+      {
+        id: 'a-seed-1',
+        ts: hoursAgo(24 * 40),
+        actor: 'j.doe',
+        action: 'admin.grant',
+        target: 'user:a.kim',
+        details: {},
+      },
+      {
+        id: 'a-seed-2',
+        ts: hoursAgo(26),
+        actor: 'j.doe',
+        action: 'share.update',
+        target: 'canvas:c-et03-excursion',
+        details: { shares: ['k.lee:editor', 'm.park:viewer'] },
+      },
+    ],
     canvases: Object.fromEntries(canvases.map((c) => [c.id, c])),
     shares: [
       { canvasId: 'c-et03-excursion', knoxId: 'k.lee', role: 'editor' },
@@ -342,5 +378,22 @@ export function userRef(knoxId: string): { knoxId: string; displayName: string }
 }
 
 export function isAdmin(knoxId: string): boolean {
-  return BOOTSTRAP_ADMINS.includes(knoxId) || getDb().admins.includes(knoxId)
+  return BOOTSTRAP_ADMINS.includes(knoxId) || getDb().admins.some((a) => a.knoxId === knoxId)
+}
+
+/** Append an audit entry (docs/permissions.md#audit). Callers save the database. */
+export function audit(
+  actor: string,
+  action: string,
+  target: string,
+  details: Record<string, unknown> = {},
+): void {
+  getDb().audit.unshift({
+    id: newId(),
+    ts: new Date().toISOString(),
+    actor,
+    action,
+    target,
+    details,
+  })
 }

@@ -24,6 +24,7 @@ import {
   type MockCanvas,
   type MockComponent,
   type MockGroup,
+  audit,
 } from '../db'
 import { apiError, noContent, ok } from '../http'
 import { identify } from '../identity'
@@ -572,6 +573,7 @@ export const canvasHandlers = [
       return apiError(403, 'FORBIDDEN', 'Only the owner or an admin can delete this canvas')
     }
     canvas.deletedAt = new Date().toISOString()
+    audit(user.knoxId, 'canvas.delete', `canvas:${canvas.id}`, { title: canvas.title })
     saveDb()
     return noContent()
   }),

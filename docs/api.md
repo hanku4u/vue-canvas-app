@@ -275,7 +275,7 @@ Arrow response: when the request sends `Accept: application/vnd.apache.arrow.str
 
 ## Admin
 
-All admin endpoints require admin rights (`403 ADMIN_REQUIRED` otherwise).
+All admin endpoints require admin rights (`403 ADMIN_REQUIRED` otherwise). Usage and audit endpoints also accept `range=24h|7d|30d` (ending now) instead of `from`/`to`; the admin UI uses `range`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |

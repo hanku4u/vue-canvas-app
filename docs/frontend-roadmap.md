@@ -302,7 +302,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Suite** (`e2e/permissions.spec.ts`): a table of owner, admin, editor, editor-with-a-hidden-component and viewer cases. Each checks the badge, visible components, palette and undo, Share, the duplicate entry, the menu, and that session filters work. Flows cover sharing (a new viewer, a role change), hiding and an ACL, locking and duplicating as a viewer. The existing canvas specs cover dragging and deleting locked components and no-access (404).
 - **Not yet:** a user's own access list, and explaining *why* something is locked beyond the tooltip.
 
-## F12: Admin screens · L
+## F12: Admin screens · L ✅
 
 **Scope** (spec: [admin.md](admin.md))
 - Admin layout and navigation. Route guard.
@@ -313,6 +313,29 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - MSW fixtures generate plausible usage and health data until the backend provides it.
 
 **Done when:** every page in [admin.md](admin.md) works against MSW, including empty and error states.
+
+**As built (`src/pages/admin/`, `src/api/admin.ts`, `src/mocks/handlers/admin.ts`):**
+- **Layout:** `/admin/*` child routes, admin-guarded, with a left nav (Permissions / Usage / System); it stacks on narrow screens. The time range (`?range=`) and filters live in the URL and carry over between pages.
+- **Admins:** bootstrap admins are marked "from config" and can't be removed. Grant through user search; revoke with confirmation. The mock refuses removing the last granted admin (yourself) and config admins.
+- **Canvases:** search, owner filter, show deleted. Row actions:
+  - Open
+  - Manage access (the F11 share dialog)
+  - Transfer ownership, optionally keeping the previous owner as an editor
+  - Delete or Restore
+
+  An editor banner reads "Viewing as admin" when access comes only from admin rights.
+- **User access:** owned and shared canvases, ACL entries, and components hidden from the person. Bulk actions: remove all shares, and transfer all owned canvases.
+- **Usage:**
+  - Overview: six tiles; queries per hour and errors per hour as *two* charts (never two y-axes); active users per day; component mix; top canvases.
+  - Datasets: a sortable table, with a detail page (p50/p95 latency, errors by code, slowest calls, canvases using it).
+  - Slow queries (threshold) and errors (by code).
+- **Health:** status cards (icon, label and color) for the data API, PostgreSQL, the cache, concurrency and the app, plus a 24 h check-history chart, refreshed every 30 s. The data API card **really calls** the mock data API's `/health`.
+- **Audit log:**
+  - Filterable by person, action and range.
+  - The mock audits shares, ACL changes, canvas delete/restore/transfer, admin grant/revoke and bulk user actions.
+- **Fixtures** (`src/mocks/usage.ts`): deterministic and hash-based, with a planted data API outage 3 days ago, 14:00–15:00, that shows up in errors, latency and health. `localStorage['mock.adminFail'] = '<path part>'` simulates failures, for the error states.
+- **Empty and error states:** a shared `AdminState` component (skeleton, error with Retry, empty), exercised in e2e.
+- **Not yet:** restricted-component ACL editing inside Manage access (open the canvas instead), and the read-only dataset and filter lists from admin.md "Later".
 
 ## F13: Hardening · M
 

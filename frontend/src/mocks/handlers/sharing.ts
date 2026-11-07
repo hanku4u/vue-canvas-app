@@ -1,6 +1,6 @@
 import { http } from 'msw'
 import type { AclEntry, ComponentAccessSettings, Share } from '@/api/types'
-import { getDb, saveDb, userRef } from '../db'
+import { audit, getDb, saveDb, userRef } from '../db'
 import { apiError, ok } from '../http'
 import { identify } from '../identity'
 import { canManageAccess, canViewCanvas } from '../permissions'
@@ -85,6 +85,9 @@ export const sharingHandlers = [
         .filter((s) => s.knoxId !== canvas.ownerId)
         .map((s) => ({ canvasId: canvas.id, knoxId: s.knoxId, role: s.role })),
     ]
+    audit(user.knoxId, 'share.update', `canvas:${canvas.id}`, {
+      shares: shares.map((s) => `${s.knoxId}:${s.role}`),
+    })
     saveDb()
     return ok({
       shares: db.shares
@@ -152,6 +155,12 @@ export const sharingHandlers = [
       ...body.acl.map((a) => ({ componentId: component.id, knoxId: a.knoxId, access: a.access })),
     ]
     canvas.revision += 1
+    audit(user.knoxId, 'acl.update', `component:${component.id}`, {
+      canvasId: canvas.id,
+      viewRestricted: body.viewRestricted,
+      editRestricted: body.editRestricted,
+      acl: body.acl.map((a) => `${a.knoxId}:${a.access}`),
+    })
     saveDb()
     return ok({ ...body, version: component.version })
   }),

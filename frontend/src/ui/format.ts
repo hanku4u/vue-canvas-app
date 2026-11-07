@@ -28,3 +28,33 @@ export function formatDateTime(iso: string): string {
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`
 }
+
+/** "420 ms", "6.2 s", "1.4 min". */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)} ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`
+  return `${(ms / 60_000).toFixed(1)} min`
+}
+
+/** 0.0123 → "1.2%". */
+export function formatPercent(ratio: number, digits = 1): string {
+  return `${(ratio * 100).toFixed(digits)}%`
+}
+
+/** 410000 → "410k". */
+export function formatCompact(value: number): string {
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    value,
+  )
+}
+
+export function formatBytes(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${value.toFixed(unit ? 0 : 0)} ${units[unit]}`
+}

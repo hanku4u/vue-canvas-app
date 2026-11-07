@@ -4,6 +4,7 @@
 import { computed, h, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import {
+  NAlert,
   NButton,
   NDropdown,
   NEmpty,
@@ -323,6 +324,16 @@ function back(): void {
         <PalettePanel @add="(type) => canvasView?.addAtCenter(type)" />
       </SidePanel>
       <div class="editor-layout__canvas">
+        <NAlert
+          v-if="canvas.data.value?.role === 'admin'"
+          type="info"
+          :show-icon="false"
+          class="editor-layout__banner"
+          data-testid="admin-banner"
+        >
+          Viewing as admin: you aren't the owner and this canvas isn't shared with you. Changes are
+          saved under your name.
+        </NAlert>
         <FilterBar @locate="(cid) => canvasView?.locate(cid)" />
         <div class="editor-layout__flow">
           <CanvasView ref="canvasView" :key="id" :canvas-id="id" />
@@ -386,6 +397,12 @@ function back(): void {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+.editor-layout__banner {
+  border-radius: 0;
+  padding: 2px 4px;
+  font-size: 13px;
 }
 
 .editor-layout__flow {

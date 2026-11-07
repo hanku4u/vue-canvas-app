@@ -29,9 +29,66 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'admin',
       component: () => import('@/pages/AdminPage.vue'),
       meta: { requiresAdmin: true, title: 'Admin' },
+      children: [
+        { path: '', name: 'admin', redirect: { name: 'admin-usage' } },
+        {
+          path: 'admins',
+          name: 'admin-admins',
+          component: () => import('@/pages/admin/AdminsPage.vue'),
+          meta: { requiresAdmin: true, title: 'Admins' },
+        },
+        {
+          path: 'canvases',
+          name: 'admin-canvases',
+          component: () => import('@/pages/admin/CanvasesPage.vue'),
+          meta: { requiresAdmin: true, title: 'All canvases' },
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/pages/admin/UserAccessPage.vue'),
+          meta: { requiresAdmin: true, title: 'User access' },
+        },
+        {
+          path: 'usage',
+          name: 'admin-usage',
+          component: () => import('@/pages/admin/UsageOverviewPage.vue'),
+          meta: { requiresAdmin: true, title: 'Usage' },
+        },
+        {
+          path: 'usage/datasets',
+          name: 'admin-datasets',
+          component: () => import('@/pages/admin/DatasetsPage.vue'),
+          meta: { requiresAdmin: true, title: 'Dataset usage' },
+        },
+        {
+          path: 'usage/datasets/:id',
+          name: 'admin-dataset',
+          component: () => import('@/pages/admin/DatasetDetailPage.vue'),
+          props: true,
+          meta: { requiresAdmin: true, title: 'Dataset usage' },
+        },
+        {
+          path: 'usage/slow',
+          name: 'admin-slow',
+          component: () => import('@/pages/admin/SlowErrorsPage.vue'),
+          meta: { requiresAdmin: true, title: 'Slow queries & errors' },
+        },
+        {
+          path: 'health',
+          name: 'admin-health',
+          component: () => import('@/pages/admin/HealthPage.vue'),
+          meta: { requiresAdmin: true, title: 'Health' },
+        },
+        {
+          path: 'audit',
+          name: 'admin-audit',
+          component: () => import('@/pages/admin/AuditPage.vue'),
+          meta: { requiresAdmin: true, title: 'Audit log' },
+        },
+      ],
     },
     {
       path: '/forbidden',
