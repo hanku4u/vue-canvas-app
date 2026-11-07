@@ -515,6 +515,7 @@ const shortcuts = (): Shortcut[] => [
   },
   {
     combo: 'escape',
+    allowInComponents: true,
     description: 'Deactivate the active component, then clear the selection',
     handler: () => {
       closeMenu()

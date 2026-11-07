@@ -23,10 +23,22 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
     activeId.value = id
   }
 
+  /**
+   * Rows selected inside data components (e.g. table rows), keyed by component id.
+   * Publishing them into filters is wired in F10.
+   */
+  const rowSelections = ref<Record<string, Record<string, unknown>[]>>({})
+
+  function setRowSelection(componentId: string, rows: Record<string, unknown>[]): void {
+    if (rows.length) rowSelections.value[componentId] = rows
+    else delete rowSelections.value[componentId]
+  }
+
   function reset(): void {
     selectedIds.value = []
     activeId.value = null
+    rowSelections.value = {}
   }
 
-  return { selectedIds, activeId, setSelection, activate, reset }
+  return { selectedIds, activeId, rowSelections, setSelection, activate, setRowSelection, reset }
 })

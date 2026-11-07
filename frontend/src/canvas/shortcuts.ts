@@ -16,6 +16,11 @@ export interface Shortcut {
   handler: (event: KeyboardEvent) => void
   /** Run even while typing in an input (default false). */
   allowInInputs?: boolean
+  /**
+   * Run even when focus is inside a component that handles its own keys, e.g. a table
+   * grid (marked with `data-own-keyboard`). Default false.
+   */
+  allowInComponents?: boolean
 }
 
 interface ParsedCombo {
@@ -85,8 +90,11 @@ export function isTypingTarget(target: EventTarget | null): boolean {
 export function dispatchShortcut(event: KeyboardEvent, shortcuts: Shortcut[]): Shortcut | null {
   if (event.defaultPrevented || event.isComposing) return null
   const typing = isTypingTarget(event.target)
+  const ownKeyboard =
+    event.target instanceof Element && !!event.target.closest('[data-own-keyboard]')
   for (const shortcut of shortcuts) {
     if (typing && !shortcut.allowInInputs) continue
+    if (ownKeyboard && !shortcut.allowInComponents) continue
     const combos = Array.isArray(shortcut.combo) ? shortcut.combo : [shortcut.combo]
     if (combos.some((combo) => matchesCombo(event, combo))) {
       event.preventDefault()

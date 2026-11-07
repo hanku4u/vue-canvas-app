@@ -182,7 +182,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Mock:** `/api/datasets`, `/values` and `/api/query` (`src/mocks/handlers/data.ts`, shaping in `src/mocks/shaping.ts`: LTTB, histogram, box plot, wafer, table paging and filters, distinct) call the mock data API through the Vite proxy, with a 5-minute cache. Dev switches: `localStorage['mock.dataLatencyMs']` and `localStorage['mock.dataFail']` are forwarded as `x-mock-*` headers.
 - **E2E:** Playwright now also starts the mock data API (`uv` is needed in CI).
 
-## F7: Table component · M
+## F7: Table component · M ✅
 
 **Scope** (spec: [components.md](components.md#table))
 - AG Grid Community, infinite row model, `table` shape (offset, limit, sort, column filters).
@@ -192,6 +192,14 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - Preview: header plus first rows snapshot.
 
 **Done when:** the `lots` dataset (7 days, about 300 lots) and `spc_points` site data (about 100k rows) scroll smoothly with server-side sort and filter.
+
+**As built (`src/components/table/`):**
+- **Paging:** AG Grid Community 36 with only the modules it needs, and the infinite row model with blocks of "Rows per request" (default 200). Every block goes through the TanStack cache under the same key scheme as `useComponentQuery`. The first block drives the shared states, data age and query details.
+- **Saved layout:** sort, column filters (AG Grid text/number/date filter model, one condition each) and column layout (order, width, pinning, visibility) are saved in the config by editors. Viewers' changes stay in their session.
+- **Inspector:** a column chooser and "Selected rows set filters" publish rules (column → dimension). Publishing itself is wired in F10. Row selection is already mirrored into `canvasUi.rowSelections`.
+- **Keyboard:** the grid owns the keyboard (`data-own-keyboard`). Canvas shortcuts step aside except Escape, so arrows move between cells and Ctrl/⌘+C copies the selected (or focused) rows as TSV.
+- **Display:** numbers use the "Decimals" setting (instead of per-column formats). Booleans show as ✓. With an active filter, an empty result still shows the grid so the filter can be changed.
+- **Measured:** 75k site-level SPC rows. Jumping to row 20,000 renders at once and fills in when the block arrives.
 
 ## F8: Chart component · L
 

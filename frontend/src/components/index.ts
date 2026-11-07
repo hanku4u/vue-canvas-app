@@ -3,6 +3,7 @@ import type { ComponentConfig, ComponentDefinition } from '@/registry/types'
 import { dataPreviewDefinition } from './data-preview'
 import { noteDefinition } from './note'
 import { placeholderDefinition } from './placeholder'
+import { tableDefinition } from './table'
 
 /**
  * Built-in component types, in palette order. Adding a type = a folder under
@@ -10,6 +11,7 @@ import { placeholderDefinition } from './placeholder'
  */
 const builtIns: ComponentDefinition<ComponentConfig>[] = [
   noteDefinition as unknown as ComponentDefinition<ComponentConfig>,
+  tableDefinition as unknown as ComponentDefinition<ComponentConfig>,
   dataPreviewDefinition as unknown as ComponentDefinition<ComponentConfig>,
   placeholderDefinition as unknown as ComponentDefinition<ComponentConfig>,
 ]
