@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Canvas editor: loads the canvas into the document store and renders the infinite canvas.
 // F2: edits are local only; saving through ops arrives in F4.
-import { computed, h, watch, type Component } from 'vue'
+import { computed, h, ref, watch, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NButton,
@@ -18,6 +18,10 @@ import { useCanvas } from '@/api/canvases'
 import { ApiError } from '@/api/client'
 import DefaultLayout from '@/app/layout/DefaultLayout.vue'
 import CanvasView from '@/canvas/CanvasView.vue'
+import { registerBuiltInComponents } from '@/components'
+import InspectorPanel from '@/canvas/InspectorPanel.vue'
+import PalettePanel from '@/canvas/PalettePanel.vue'
+import SidePanel from '@/canvas/SidePanel.vue'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
 import CanvasNameDialog from '@/ui/canvases/CanvasNameDialog.vue'
 import { canvasCan, roleLabel } from '@/ui/canvases/permissions'
@@ -27,11 +31,15 @@ import StatusPage from './StatusPage.vue'
 
 const props = defineProps<{ id: string }>()
 
+// Component types must exist before the palette, canvas or inspector render.
+registerBuiltInComponents()
+
 const router = useRouter()
 const canvas = useCanvas(() => props.id)
 const actions = useCanvasActions({ onDeleted: () => void router.push({ name: 'home' }) })
 
 const store = useCanvasDocStore()
+const canvasView = ref<InstanceType<typeof CanvasView> | null>(null)
 
 // Load into the store when a canvas opens. Later refetches (e.g. after a rename) must not
 // overwrite local edits, so only (re)load when the canvas id changes.
@@ -119,7 +127,23 @@ function back(): void {
       </NDropdown>
     </template>
 
-    <CanvasView v-if="ready" :key="id" :canvas-id="id" />
+    <div v-if="ready" class="editor-layout">
+      <SidePanel
+        v-if="store.canEdit"
+        side="left"
+        title="Components"
+        storage-key="ui.panel.palette"
+        :width="200"
+      >
+        <PalettePanel @add="(type) => canvasView?.addAtCenter(type)" />
+      </SidePanel>
+      <div class="editor-layout__canvas">
+        <CanvasView ref="canvasView" :key="id" :canvas-id="id" />
+      </div>
+      <SidePanel side="right" title="Inspector" storage-key="ui.panel.inspector" :width="280">
+        <InspectorPanel />
+      </SidePanel>
+    </div>
     <div v-else class="editor">
       <NSpin v-if="canvas.isPending.value" />
       <NEmpty
@@ -144,6 +168,17 @@ function back(): void {
 </template>
 
 <style scoped>
+.editor-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-layout__canvas {
+  flex: 1;
+  min-width: 0;
+}
+
 .editor {
   display: grid;
   place-items: center;

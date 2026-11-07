@@ -215,11 +215,17 @@ interface NoteConfig {
 
 ---
 
-## Adding a new component type later
+## Adding a new component type
 
-1. Create `frontend/src/components/<type>/` with `view.vue`, `preview.vue`, `schema.ts` (Zod plus defaults) and, optionally, `inspector.vue`.
-2. Register it in `registry/index.ts`.
+1. Create `frontend/src/components/<type>/` with:
+   - `schema.ts`: a Zod config schema with defaults and `.meta()` hints for the inspector (see `src/registry/inspectorFields.ts`)
+   - a view component (props: `component`, `config`, `editable`, `active`; emits `update-config` with a partial config)
+   - optionally a preview component and an extra inspector component
+   - `index.ts` exporting the `ComponentDefinition`
+2. Add the definition to the list in `frontend/src/components/index.ts`.
 3. If it needs a new data shape, add it to `backend/app/shaping/` and to the `shape` union in [api.md](api.md#post-apiquery).
 4. Document it in this file.
+
+When a type's config shape changes, bump `configVersion` and handle the old shape in `migrateConfig`. Saved components are migrated when they're read.
 
 Candidates after v1: KPI or stat tile, image or link embed, Pareto chart, bin map (categorical wafer map) if bin data becomes available, equipment state timeline.

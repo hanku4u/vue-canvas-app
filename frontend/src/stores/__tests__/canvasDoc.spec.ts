@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { Canvas, CanvasComponent, CanvasRole } from '@/api/types'
+import { registerBuiltInComponents } from '@/components'
 import { useCanvasDocStore } from '@/stores/canvasDoc'
 
 function component(id: string, zIndex: number, canEdit = true): CanvasComponent {
@@ -118,5 +119,64 @@ describe('canvasDoc store', () => {
     expect(store.removeComponents(['a'])).toEqual([])
     expect(store.components.a?.x).toBe(0)
     expect(store.dirty).toBe(false)
+  })
+})
+
+describe('canvasDoc store: titles, config and duplication', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    registerBuiltInComponents()
+  })
+
+  function note(id: string, canEdit = true): CanvasComponent {
+    return {
+      ...component(id, 0, canEdit),
+      type: 'note',
+      config: { markdown: 'hi', color: 'yellow', fontSize: 'md' },
+    }
+  }
+
+  it('renames, trimming and rejecting empty titles', () => {
+    const store = useCanvasDocStore()
+    store.load(canvas('owner', [note('n')]))
+    expect(store.renameComponent('n', '  Findings  ')).toBe(true)
+    expect(store.components.n?.title).toBe('Findings')
+    expect(store.renameComponent('n', '   ')).toBe(false)
+    expect(store.components.n?.title).toBe('Findings')
+  })
+
+  it('validates config patches against the type schema', () => {
+    const store = useCanvasDocStore()
+    store.load(canvas('owner', [note('n')]))
+    expect(store.updateConfig('n', { color: 'blue' })).toBeNull()
+    expect(store.components.n?.config).toEqual({ markdown: 'hi', color: 'blue', fontSize: 'md' })
+    expect(store.updateConfig('n', { color: 'purple' })).toMatch(/color/)
+    expect(store.components.n?.config.color).toBe('blue')
+  })
+
+  it('resets an invalid config to defaults', () => {
+    const store = useCanvasDocStore()
+    store.load(canvas('owner', [{ ...note('n'), config: { color: 42 } }]))
+    expect(store.updateConfig('n', { fontSize: 'lg' })).toBeNull()
+    expect(store.components.n?.config).toEqual({ markdown: '', color: 'yellow', fontSize: 'lg' })
+  })
+
+  it('refuses config changes it is not allowed to make', () => {
+    const store = useCanvasDocStore()
+    store.load(canvas('owner', [{ ...note('n'), type: 'mystery' }]))
+    expect(store.updateConfig('n', {})).toMatch(/Unknown component type/)
+    store.load(canvas('editor', [note('locked', false)]))
+    expect(store.updateConfig('locked', { color: 'red' })).toMatch(/cannot edit/)
+  })
+
+  it('duplicates with an offset, a deep config copy and on top', () => {
+    const store = useCanvasDocStore()
+    store.load(canvas('editor', [note('n'), note('locked', false)]))
+    const [copy, lockedCopy] = store.duplicateComponents(['n', 'locked'])
+    expect(store.components[copy!]).toMatchObject({ type: 'note', x: 32, y: 32, title: 'n' })
+    expect(store.components[copy!]?.config).not.toBe(store.components.n?.config)
+    // Locked components can still be copied (like copy/paste); the copy is editable.
+    expect(store.components[lockedCopy!]?.access.canEdit).toBe(true)
+    expect(store.ordered.slice(-2).map((c) => c.id)).toEqual([copy, lockedCopy])
   })
 })

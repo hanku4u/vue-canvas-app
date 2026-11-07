@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test'
 
 // "Weekly yield review" is an empty canvas owned by j.doe (the default dev user), so it
 // opens at zoom 100% with flow coordinates equal to pixels from the pane's top-left corner.
-// "ET-03 CD excursion" has three seeded placeholders; the third is edit-restricted.
+// "ET-03 CD excursion" has three seeded placeholders (the third is edit-restricted) and a note.
 
 const EMPTY = 'c-yield-review'
 const SEEDED = 'c-et03-excursion'
@@ -218,7 +218,7 @@ test('zoom controls and shortcuts; viewport persists per canvas', async ({ page 
 
 test('fits seeded content when opening a canvas for the first time', async ({ page }) => {
   await openCanvas(page, SEEDED)
-  await expect(nodes(page)).toHaveCount(3)
+  await expect(nodes(page)).toHaveCount(4)
   const view = await pane(page)
   for (const element of await nodes(page).all()) {
     const b = await box(element)
@@ -232,12 +232,12 @@ test('fits seeded content when opening a canvas for the first time', async ({ pa
 test('viewers can look but not move or add', async ({ page }) => {
   await asUser(page, 'm.park')
   await openCanvas(page, SEEDED)
-  await expect(nodes(page)).toHaveCount(3)
-  await expect(nodes(page).filter({ hasText: 'view only' })).toHaveCount(3)
+  await expect(nodes(page)).toHaveCount(4)
+  await expect(nodes(page).filter({ hasText: 'view only' })).toHaveCount(4)
 
   // Dragging a node you can't move pans the canvas instead: the layout itself is unchanged.
-  const target = node(page, 'Lot table')
-  const reference = node(page, 'SPC')
+  const target = node(page, 'Lot table (soon)')
+  const reference = node(page, 'SPC – CD_MEAN (soon)')
   const before = await offset(target, reference)
   await dragBy(page, target, 120, 80)
   expect(await offset(target, reference)).toEqual(before)
@@ -252,8 +252,8 @@ test('viewers can look but not move or add', async ({ page }) => {
 test('editors cannot change edit-restricted components', async ({ page }) => {
   await asUser(page, 'k.lee')
   await openCanvas(page, SEEDED)
-  const locked = node(page, 'Wafer maps')
-  const open = node(page, 'Lot table')
+  const locked = node(page, 'Wafer maps (soon)')
+  const open = node(page, 'Lot table (soon)')
   await expect(locked).toContainText('view only')
   await expect(open).not.toContainText('view only')
 
@@ -263,5 +263,5 @@ test('editors cannot change edit-restricted components', async ({ page }) => {
 
   await locked.click({ position: { x: 40, y: 12 } })
   await page.keyboard.press('Delete')
-  await expect(nodes(page)).toHaveCount(3)
+  await expect(nodes(page)).toHaveCount(4)
 })

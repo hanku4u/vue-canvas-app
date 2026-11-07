@@ -1,6 +1,8 @@
-import { computed, ref } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 import { defineStore } from 'pinia'
 import type { Canvas, CanvasComponent } from '@/api/types'
+import { applyConfigPatch, getDefinition, resolveConfig } from '@/registry/registry'
+import type { ComponentConfig } from '@/registry/types'
 import { canvasCan } from '@/ui/canvases/permissions'
 
 export interface GeometryUpdate {
@@ -19,12 +21,18 @@ export interface NewComponentInput {
   w: number
   h: number
   config?: Record<string, unknown>
+  configVersion?: number
 }
+
+export const MAX_TITLE = 120
+
+/** Offset for duplicated components, so the copy is visibly separate. */
+const DUPLICATE_OFFSET = 32
 
 /**
  * The open canvas document: canvas metadata plus its components, keyed by id.
  *
- * F2: edits are local only. F4 turns every mutation into an op (with an inverse for
+ * F2/F3: edits are local only. F4 turns every mutation into an op (with an inverse for
  * undo) and syncs it to POST /api/canvases/{id}/ops.
  */
 export const useCanvasDocStore = defineStore('canvasDoc', () => {
@@ -54,6 +62,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     revision.value += 1
   }
 
+  /** The component if the current user may change it, otherwise null. */
   function editable(id: string): CanvasComponent | null {
     const component = components.value[id]
     return component && canEdit.value && component.access.canEdit ? component : null
@@ -71,7 +80,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     const component: CanvasComponent = {
       id: crypto.randomUUID(),
       type: input.type,
-      title: input.title,
+      title: input.title.slice(0, MAX_TITLE),
       groupId: null,
       x: input.x,
       y: input.y,
@@ -79,7 +88,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
       h: input.h,
       zIndex: Object.keys(components.value).length ? zRange().max + 1 : 0,
       config: input.config ?? {},
-      configVersion: 1,
+      configVersion: input.configVersion ?? 1,
       version: 0,
       access: { canEdit: true, viewRestricted: false, editRestricted: false },
       updatedBy: '',
@@ -115,12 +124,68 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     )
   }
 
+  /** Rename a component. Returns false when not allowed or the title is empty. */
+  function renameComponent(id: string, title: string): boolean {
+    const component = editable(id)
+    const value = title.trim().slice(0, MAX_TITLE)
+    if (!component || !value) return false
+    if (value !== component.title) {
+      component.title = value
+      changed()
+    }
+    return true
+  }
+
+  /**
+   * Merge `patch` into a component's config, validated against its type's schema.
+   * Returns null on success or an error message. `replace` swaps the whole config
+   * (used to reset an invalid config to defaults).
+   */
+  function updateConfig(
+    id: string,
+    patch: ComponentConfig,
+    options: { replace?: boolean } = {},
+  ): string | null {
+    const component = editable(id)
+    if (!component) return 'You cannot edit this component'
+    const definition = getDefinition(component.type)
+    if (!definition) return `Unknown component type '${component.type}'`
+    const resolved = resolveConfig(definition, component)
+    const base = options.replace || !resolved.ok ? {} : resolved.config
+    const result = applyConfigPatch(definition, base, patch)
+    if (!result.ok) return result.error
+    component.config = result.config
+    component.configVersion = definition.configVersion
+    changed()
+    return null
+  }
+
   /** Remove the editable components among `ids`; returns the ids actually removed. */
   function removeComponents(ids: string[]): string[] {
     const removed = ids.filter((id) => editable(id))
     for (const id of removed) delete components.value[id]
     if (removed.length) changed()
     return removed
+  }
+
+  /** Copy components (any the user can see, like copy/paste); returns the new ids. */
+  function duplicateComponents(ids: string[]): string[] {
+    if (!canEdit.value) return []
+    const sources = ordered.value.filter((c) => ids.includes(c.id))
+    return sources.flatMap((source) => {
+      const copy = addComponent({
+        type: source.type,
+        title: source.title,
+        x: source.x + DUPLICATE_OFFSET,
+        y: source.y + DUPLICATE_OFFSET,
+        w: source.w,
+        h: source.h,
+        // toRaw: structuredClone can't clone Vue's reactive proxies.
+        config: structuredClone(toRaw(source.config)),
+        configVersion: source.configVersion,
+      })
+      return copy ? [copy.id] : []
+    })
   }
 
   function restack(ids: string[], direction: 'front' | 'back'): void {
@@ -144,10 +209,14 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     canEdit,
     ordered,
     load,
+    editable,
     addComponent,
     updateGeometry,
     nudge,
+    renameComponent,
+    updateConfig,
     removeComponents,
+    duplicateComponents,
     bringToFront,
     sendToBack,
   }

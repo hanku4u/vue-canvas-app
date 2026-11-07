@@ -86,7 +86,7 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = 'mock.db'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 /** Always admins, mirroring BOOTSTRAP_ADMINS on the backend. */
 export const BOOTSTRAP_ADMINS = ['j.doe']
@@ -212,6 +212,21 @@ function seed(): MockDb {
         seedPlaceholder('c-et03-excursion', 'Wafer maps (soon)', 0, 240, 2, {
           editRestricted: true,
         }),
+        {
+          ...seedPlaceholder('c-et03-excursion', 'Investigation notes', 352, 240, 3),
+          type: 'note',
+          config: {
+            markdown: [
+              '**Hypothesis:** gate CD on ET-03 chamber C drifted high ~10 days ago.',
+              '',
+              '- [x] SPC shows OOC points on chamber C',
+              '- [ ] list affected lots',
+              '- [ ] check wafer maps for an edge ring',
+            ].join('\n'),
+            color: 'yellow',
+            fontSize: 'md',
+          },
+        },
       ].map((c) => [c.id, c]),
     ),
     acl: [],

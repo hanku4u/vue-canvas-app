@@ -15,6 +15,11 @@
   --app-text-muted: #64748b;
   --app-primary: #4f46e5;
   --app-danger: #d03050;
+  --note-default: #ffffff;
+  --note-yellow: #fff7c2;
+  --note-blue: #dbeafe;
+  --note-green: #dcfce7;
+  --note-red: #fee2e2;
 }
 
 :root.app-dark {
@@ -25,6 +30,11 @@
   --app-text-muted: #a1a1aa;
   --app-primary: #818cf8;
   --app-danger: #e88080;
+  --note-default: #18181c;
+  --note-yellow: #3a3518;
+  --note-blue: #172338;
+  --note-green: #15301f;
+  --note-red: #3a1a1d;
 }
 
 *,

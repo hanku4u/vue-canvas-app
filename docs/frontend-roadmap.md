@@ -93,7 +93,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - Placeholders are added from the right-click menu (plus "Add 50 placeholders" in dev builds). The seed "ET-03 CD excursion" canvas has three, one of them edit-restricted.
 - Measured: with 50 placeholders all on screen, wheel-panning runs at a steady 16.7 ms per frame (headless Chromium).
 
-## F3: Component framework and Note · M
+## F3: Component framework and Note · M ✅
 
 **Scope**
 - Component registry (`ComponentDefinition` from [architecture.md](architecture.md#component-registry)), including config schema, versioning and migration hooks.
@@ -106,6 +106,15 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - Empty canvas state.
 
 **Done when:** notes can be added from the palette, edited, styled and arranged. Zooming out swaps to previews. Adding a new dummy type only takes a folder and a registration.
+
+**As built:**
+- **Registry:** `src/registry/` holds the registry plus config resolution (migrate, validate, fall back to defaults with an error). Types live in `src/components/<type>/index.ts` and are listed in `src/components/index.ts`.
+- **Inspector forms:** generated from each type's Zod schema via `z.toJSONSchema`. Field hints use `.meta()`: `title`, `description`, `x-inspector`, `x-widget` (`textarea`, `segmented`, `swatches`), `x-enum-labels`, `x-swatches`, `x-order`.
+- **Component frame:** icon, title, lock marker, and a ⋯ menu (duplicate, front/back, delete). Unknown types, invalid configs (with "Reset to defaults") and render crashes are all contained in the frame.
+- **Activation:** clicking a component activates it, and its body gets `nodrag nowheel`, so the header remains the drag handle. Esc deactivates first, then clears the selection.
+- **Level of detail:** previews kick in below 50% zoom, and note text hides below 30%. Switching to previews *during* pan and zoom gestures is deferred to F8, where it can be measured against real charts: remounting heavy views after every pan may cost more than it saves.
+- **Deferred:** the hover footer showing filter bindings comes in F10.
+- **Note:** Markdown via `markdown-it`, with raw HTML off, task lists, and DOMPurify sanitizing; links open in a new tab. Placeholders stay registered (for seeded slots and the dev menu) but aren't in the palette.
 
 ## F4: Document model, undo/redo, persistence · L
 
