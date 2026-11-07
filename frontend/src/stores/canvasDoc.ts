@@ -111,6 +111,9 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
   const saveStatus = computed<SaveStatus>(() => sync.value?.status.value ?? 'saved')
   const dirty = computed(() => saveStatus.value !== 'saved')
   const canEdit = computed(() => !!canvas.value && canvasCan.edit(canvas.value.role))
+  const canManageAccess = computed(
+    () => !!canvas.value && canvasCan.manageAccess(canvas.value.role),
+  )
 
   /** Components in paint order (lowest zIndex first). */
   const ordered = computed(() =>
@@ -730,6 +733,7 @@ export const useCanvasDocStore = defineStore('canvasDoc', () => {
     conflicts,
     rejection,
     canEdit,
+    canManageAccess,
     canUndo,
     canRedo,
     ordered,

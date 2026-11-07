@@ -14,7 +14,7 @@ import {
   useMessage,
   type DropdownOption,
 } from 'naive-ui'
-import { ArrowLeft, Copy, Ellipsis, Pencil, Redo2, Trash, Undo2, Users } from '@lucide/vue'
+import { ArrowLeft, Copy, Ellipsis, Pencil, Redo2, Share2, Trash, Undo2, Users } from '@lucide/vue'
 import { useCanvas } from '@/api/canvases'
 import { ApiError } from '@/api/client'
 import DefaultLayout from '@/app/layout/DefaultLayout.vue'
@@ -33,6 +33,9 @@ import { describeError, useApiErrorNotifier } from '@/ui/useApiErrorNotifier'
 import FilterBar from '@/filters/FilterBar.vue'
 import { useFilterUrl } from '@/filters/useFilterUrl'
 import { useFiltersStore } from '@/stores/filters'
+import { useCanvasUiStore } from '@/stores/canvasUi'
+import RestrictDialog from '@/ui/sharing/RestrictDialog.vue'
+import ShareDialog from '@/ui/sharing/ShareDialog.vue'
 import StatusPage from './StatusPage.vue'
 
 const props = defineProps<{ id: string }>()
@@ -47,6 +50,19 @@ const canvas = useCanvas(() => props.id)
 const actions = useCanvasActions({ onDeleted: () => void router.push({ name: 'home' }) })
 
 const store = useCanvasDocStore()
+const ui = useCanvasUiStore()
+
+// Sharing (canvas) and restrictions (component, opened from its menu).
+const showShare = ref(false)
+const restricting = computed(() =>
+  ui.accessDialogFor ? store.components[ui.accessDialogFor] : undefined,
+)
+const showRestrict = computed({
+  get: () => !!restricting.value,
+  set: (open: boolean) => {
+    if (!open) ui.accessDialogFor = null
+  },
+})
 
 // Session filters belong to one canvas visit; canvas-level ones live in the URL.
 const filterStore = useFiltersStore()
@@ -136,8 +152,15 @@ const menu = computed<DropdownOption[]>(() => {
   const role = canvas.data.value?.role
   if (!role) return []
   const items: DropdownOption[] = []
+  if (canvasCan.manageAccess(role)) {
+    items.push({ key: 'share', label: 'Share…', icon: icon(Share2) })
+  }
   if (canvasCan.edit(role)) items.push({ key: 'rename', label: 'Rename', icon: icon(Pencil) })
-  items.push({ key: 'duplicate', label: 'Duplicate', icon: icon(Copy) })
+  items.push({
+    key: 'duplicate',
+    label: role === 'owner' ? 'Duplicate' : 'Duplicate to my canvases',
+    icon: icon(Copy),
+  })
   if (canvasCan.delete(role)) items.push({ key: 'delete', label: 'Delete', icon: icon(Trash) })
   if (isMockApi) {
     items.push(
@@ -151,6 +174,7 @@ const menu = computed<DropdownOption[]>(() => {
 async function onMenu(key: string): Promise<void> {
   const value = canvas.data.value
   if (!value) return
+  if (key === 'share') showShare.value = true
   if (key === 'rename') actions.startRename(value)
   if (key === 'duplicate') {
     // The copy is made on the server: save pending edits first so they're included.
@@ -190,7 +214,40 @@ function back(): void {
       </NButton>
       <template v-if="canvas.data.value">
         <h1 class="editor__title" data-testid="canvas-title">{{ canvas.data.value.title }}</h1>
-        <NTag size="small" :bordered="false">{{ roleLabel[canvas.data.value.role] }}</NTag>
+        <NTag
+          size="small"
+          :bordered="false"
+          :type="canvas.data.value.role === 'viewer' ? 'warning' : 'default'"
+          data-testid="canvas-role"
+        >
+          {{
+            canvas.data.value.role === 'viewer' ? 'View only' : roleLabel[canvas.data.value.role]
+          }}
+        </NTag>
+        <NButton
+          v-if="canvasCan.manageAccess(canvas.data.value.role)"
+          size="small"
+          secondary
+          data-testid="share-button"
+          @click="showShare = true"
+        >
+          <template #icon>
+            <NIcon><Share2 /></NIcon>
+          </template>
+          Share
+        </NButton>
+        <NButton
+          v-else-if="canvas.data.value.role === 'viewer'"
+          size="small"
+          secondary
+          data-testid="duplicate-mine"
+          @click="onMenu('duplicate')"
+        >
+          <template #icon>
+            <NIcon><Copy /></NIcon>
+          </template>
+          Duplicate to my canvases
+        </NButton>
         <template v-if="ready && store.canEdit">
           <div class="editor__history">
             <NTooltip>
@@ -287,6 +344,20 @@ function back(): void {
       </NEmpty>
     </div>
 
+    <ShareDialog
+      v-if="canvas.data.value"
+      v-model:show="showShare"
+      :canvas-id="id"
+      :owner-id="canvas.data.value.owner.knoxId"
+      :owner-name="canvas.data.value.owner.displayName"
+    />
+    <RestrictDialog
+      v-if="restricting"
+      v-model:show="showRestrict"
+      :canvas-id="id"
+      :component-id="restricting.id"
+      :component-title="restricting.title"
+    />
     <CanvasNameDialog
       v-model:show="actions.dialog.show"
       :mode="actions.dialog.mode"

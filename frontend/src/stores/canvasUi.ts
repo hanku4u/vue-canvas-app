@@ -27,6 +27,9 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
    * Rows selected inside data components (e.g. table rows), keyed by component id.
    * Publishing them into filters is wired in F10.
    */
+  /** Component whose "Restrict access…" dialog is open. */
+  const accessDialogFor = ref<string | null>(null)
+
   /** Component to highlight (e.g. the source of a hovered filter chip). */
   const highlightId = ref<string | null>(null)
 
@@ -47,6 +50,7 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
     selectedIds,
     activeId,
     highlightId,
+    accessDialogFor,
     rowSelections,
     setSelection,
     activate,

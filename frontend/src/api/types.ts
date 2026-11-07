@@ -306,3 +306,28 @@ export interface FilterDimension {
   hasValues: boolean
   default: FilterValue | null
 }
+
+// ---------------------------------------------------------------------------
+// Sharing and component restrictions (docs/api.md#sharing-and-restrictions)
+// ---------------------------------------------------------------------------
+
+export type ShareRole = 'editor' | 'viewer'
+
+export interface Share {
+  knoxId: string
+  role: ShareRole
+  /** Display name (responses only). */
+  displayName?: string
+}
+
+export interface AclEntry {
+  knoxId: string
+  access: 'view' | 'edit'
+  displayName?: string
+}
+
+export interface ComponentAccessSettings {
+  viewRestricted: boolean
+  editRestricted: boolean
+  acl: AclEntry[]
+}

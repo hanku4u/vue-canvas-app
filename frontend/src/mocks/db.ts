@@ -86,7 +86,7 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = 'mock.db'
-const DB_VERSION = 6
+const DB_VERSION = 7
 
 /** Always admins, mirroring BOOTSTRAP_ADMINS on the backend. */
 export const BOOTSTRAP_ADMINS = ['j.doe']
@@ -224,6 +224,23 @@ function seed(): MockDb {
               '- [ ] check wafer maps for an edge ring',
             ].join('\n'),
             color: 'yellow',
+            fontSize: 'md',
+          },
+        },
+        // CMP canvas (owner m.park, k.lee editor): one open note and one hidden from k.lee.
+        {
+          ...seedPlaceholder('c-cmp-monitor', 'CMP notes', 0, 0, 0),
+          type: 'note',
+          config: { markdown: 'Pad change on CP-02 due Friday.', color: 'yellow', fontSize: 'md' },
+        },
+        {
+          ...seedPlaceholder('c-cmp-monitor', 'Supplier notes', 352, 0, 1, {
+            viewRestricted: true,
+          }),
+          type: 'note',
+          config: {
+            markdown: '**Restricted:** slurry lot change from the new supplier.',
+            color: 'blue',
             fontSize: 'md',
           },
         },

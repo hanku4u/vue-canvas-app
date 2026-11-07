@@ -8,7 +8,9 @@ import {
   CircleQuestionMark,
   Copy,
   Ellipsis,
+  EyeOff,
   Lock,
+  ShieldUser,
   RotateCw,
   SearchCode,
   Trash,
@@ -177,6 +179,9 @@ const menu = computed<DropdownOption[]>(() => {
       },
       { key: 'back', label: menuLabel('Send to back', { hint: '[' }), icon: icon(ArrowDownToLine) },
       { key: 'd1', type: 'divider' },
+      ...(store.canManageAccess
+        ? [{ key: 'access', label: menuLabel('Restrict access…'), icon: icon(ShieldUser) }]
+        : []),
       {
         key: 'delete',
         label: menuLabel('Delete', { hint: 'Del', danger: true }),
@@ -190,6 +195,7 @@ const menu = computed<DropdownOption[]>(() => {
 function onMenu(key: string): void {
   if (key === 'refresh') dataInfo.value?.refresh()
   if (key === 'details') showDetails.value = true
+  if (key === 'access') ui.accessDialogFor = props.id
   if (key === 'duplicate') store.duplicateComponents([props.id])
   if (key === 'front') store.bringToFront([props.id])
   if (key === 'back') store.sendToBack([props.id])
@@ -247,7 +253,15 @@ function onMenu(key: string): void {
         </template>
         <template v-else>Loading…</template>
       </NTooltip>
-      <NTooltip v-if="restricted || !editable">
+      <NTooltip v-if="component.access.viewRestricted && editable">
+        <template #trigger>
+          <span class="frame__marker" data-testid="frame-hidden">
+            <NIcon :size="13"><EyeOff /></NIcon>
+          </span>
+        </template>
+        Hidden from everyone not on its access list.
+      </NTooltip>
+      <NTooltip v-if="(restricted && !component.access.viewRestricted) || !editable">
         <template #trigger>
           <span class="frame__marker" data-testid="frame-lock">
             <NIcon :size="13"><Lock /></NIcon>

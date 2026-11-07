@@ -279,7 +279,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
   - Reset drops session values.
   - Seeds and new canvases no longer store a "last 7 days" default: the dimension default covers it.
 - **Not yet:** group "Save as default" in the UI (store support only), per-component overrides UI (resolution supports `config.overrides`). A selection is withdrawn when its view unmounts (zooming out to previews).
-## F11: Sharing and permissions UI · M
+## F11: Sharing and permissions UI · M ✅
 
 **Scope** (spec: [permissions.md](permissions.md))
 - Viewer mode: no palette, read-only inspector, no move or resize, "View only" badge, Duplicate to my canvases.
@@ -290,6 +290,17 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - MSW enforces the full permission matrix. The dev user switcher makes each role testable.
 
 **Done when:** a table-driven Playwright suite walks owner, editor, viewer, locked and hidden scenarios and matches the "Who can do what" table.
+
+**As built:**
+- **Mock:** `GET /api/users`, `GET`/`PUT /api/canvases/{id}/shares` and `GET`/`PUT …/components/{cid}/access`, owner and admin only. They validate known users and roles. An access change bumps the component version, and the client picks it up through the normal remote merge. Seeds (DB v7): the CMP canvas (owner m.park, k.lee editor) has a view-restricted "Supplier notes".
+- **Top bar:**
+  - A role badge: Owner / Editor / View only / Admin access.
+  - Owners and admins get **Share**; viewers get **Duplicate to my canvases**.
+  - The canvas menu has Share…, Rename, Duplicate (labelled "to my canvases" for non-owners) and Delete, shown per role.
+- **Share dialog:** user search, Can edit / Can view per person, remove, and Save (replaces the list).
+- **Restrict access… dialog** (component menu, owner and admins): "Hide from everyone not listed" and "Only listed people can edit" checkboxes, a plain-language summary, and an ACL with view/edit per person. On the canvas, hidden components show an eye-off marker to the people who can still see them. Locked ones keep the lock and "view only" marker.
+- **Suite** (`e2e/permissions.spec.ts`): a table of owner, admin, editor, editor-with-a-hidden-component and viewer cases. Each checks the badge, visible components, palette and undo, Share, the duplicate entry, the menu, and that session filters work. Flows cover sharing (a new viewer, a role change), hiding and an ACL, locking and duplicating as a viewer. The existing canvas specs cover dragging and deleting locked components and no-access (404).
+- **Not yet:** a user's own access list, and explaining *why* something is locked beyond the tooltip.
 
 ## F12: Admin screens · L
 
