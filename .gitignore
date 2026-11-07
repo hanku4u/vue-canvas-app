@@ -20,3 +20,5 @@ dist/
 .env
 .env.*
 !.env.example
+# Non-secret Vite mode defaults (e.g. VITE_API_MOCK) are committed
+!frontend/.env.development
