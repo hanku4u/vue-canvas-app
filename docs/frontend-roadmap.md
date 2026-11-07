@@ -201,7 +201,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Display:** numbers use the "Decimals" setting (instead of per-column formats). Booleans show as ✓. With an active filter, an empty result still shows the grid so the filter can be changed.
 - **Measured:** 75k site-level SPC rows. Jumping to row 20,000 renders at once and fills in when the block arrives.
 
-## F8: Chart component · L
+## F8: Chart component · L ✅
 
 **Scope** (spec: [components.md](components.md#chart))
 - ECharts via `vue-echarts`. Tree-shaken imports. A theme matching the app tokens.
@@ -213,6 +213,17 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - Inspector: kind-specific config (x, y, seriesBy, limits mapping, rules).
 
 **Done when:** `CD_MEAN` for ET-03 over 30 days renders as an SPC chart split by chamber, and the chamber-C excursion stands out with OOC points highlighted.
+
+**As built (`src/components/chart/`):**
+- **Rendering:** ECharts 6 via `vue-echarts`, registering only the line, scatter, bar and box plot charts, the components the chart uses, and the canvas renderer. Options are pure functions (`options.ts`) of the query result.
+- **Fields:** default to *auto*. After picking a dataset, the chart uses its datetime column for x, `value` (or the first measure) for y, splits series by the first of chamber / tool / product / status, and picks limit columns by name. The chart inspector overrides any of them ("None" turns a split off).
+- **Colors** follow the dataviz method. The categorical palette was validated against the app's light and dark chart surfaces (`src/ui/vizPalette.ts`). Colors follow the entity (`ColorSlots`), so filtering never repaints the remaining series. There's a legend for two or more series, at the bottom; the top row is kept for badges.
+- **SPC:** step lines for UCL / LCL / target / USL / LSL, labeled directly. Out-of-control points use the reserved critical red *and* a diamond shape, plus an "N OOC" badge.
+- **Point budget:** about two points per pixel of width, stepped by 400 so small resizes reuse the query. A "1,600 of 8,971 points" note shows when the result was downsampled.
+- **Zoom:** while the chart is active, dragging box-zooms the time axis. That refetches the range at full resolution (`xRange`, session only). Double-click or "Reset zoom" returns to the full range.
+- **Preview:** a PNG snapshot captured after each render.
+- **Level of detail, decided:** previews switch on zoom level only, not during pan and zoom gestures. Vue Flow pans with a CSS transform, so live charts aren't re-rendered while panning, and remounting them after every gesture would cost more than it saves.
+- Point-click and brush publishing are configured in the schema (`publish`, `publishTimeRange`) and wired in F10.
 
 ## F9: Wafer map component · L
 

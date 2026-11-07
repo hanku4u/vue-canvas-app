@@ -141,7 +141,9 @@ interface WaferMapConfig extends DataConfig {
   value: string                         // numeric column to color by
   aggregate: 'mean' | 'median' | 'std' | 'min' | 'max' | 'count'   // per die (stacked, or duplicates)
   colorScale: {
-    palette: 'viridis' | 'diverging' | 'turbo'
+    // One-hue sequential (blue) for magnitude, or blue ↔ gray ↔ red diverging around
+    // `center` (e.g. a target). No rainbow scales: they distort perceived differences.
+    palette: 'sequential' | 'diverging'
     range: 'auto' | 'p1-p99' | { min: number; max: number }
     center?: number                     // for diverging, e.g. target value
   }

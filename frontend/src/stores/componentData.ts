@@ -32,5 +32,12 @@ export const useComponentDataStore = defineStore('componentData', () => {
     byId.delete(id)
   }
 
-  return { byId, publish, remove }
+  /** Last rendered image of a component (PNG data URL), for zoomed-out previews. */
+  const snapshots = shallowReactive(new Map<string, string>())
+
+  function setSnapshot(id: string, dataUrl: string): void {
+    snapshots.set(id, dataUrl)
+  }
+
+  return { byId, publish, remove, snapshots, setSnapshot }
 })
