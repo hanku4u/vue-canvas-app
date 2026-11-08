@@ -247,7 +247,13 @@ export const MOCK_DATASETS: MockDataset[] = [
         type: 'string[]',
         required: false,
         filter: 'lot_id',
-        valuesFrom: null,
+        // Only lots that finished wafer sort have die-level data: suggest those, newest first.
+        valuesFrom: {
+          dataset: 'lots',
+          column: 'lot_id',
+          params: { status: ['COMPLETE'], start: '-60d', end: 'now' },
+          order: 'desc',
+        },
         requiredGroup: 'target',
       },
       {

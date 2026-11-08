@@ -31,6 +31,7 @@ import { provideLevelOfDetail, TINY_BELOW_ZOOM } from './lod'
 import { altPressed, useModifierKeys } from './modifiers'
 import { pasteInputs, readClipboard, toClipboard, writeClipboard } from './clipboard'
 import { PALETTE_MIME } from './palette'
+import FullscreenView from './FullscreenView.vue'
 import ShortcutsDialog from './ShortcutsDialog.vue'
 import { useShortcuts, type Shortcut } from './shortcuts'
 import { loadViewport, saveViewport } from './viewportStorage'
@@ -617,6 +618,15 @@ const shortcuts = (): Shortcut[] => [
     },
   },
   {
+    combo: 'f',
+    description: 'Full screen (one selected component)',
+    group: 'View',
+    handler: () => {
+      const ids = selectedIds().filter((id) => store.components[id])
+      if (ids.length === 1) ui.fullscreenId = ids[0]!
+    },
+  },
+  {
     combo: '?',
     description: 'Show keyboard shortcuts',
     group: 'Help',
@@ -651,7 +661,8 @@ function dismissHints(): void {
     // Storage unavailable: the tips come back next visit.
   }
 }
-useShortcuts(shortcuts)
+// Canvas shortcuts pause while a component is full screen (it handles its own keys).
+useShortcuts(() => (ui.fullscreenId ? [] : shortcuts()))
 
 const patternColor = computed(() => (isDark.value ? '#3f3f46' : '#cbd5e1'))
 const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240 242 247 / 70%)'))
@@ -719,6 +730,7 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
     </VueFlow>
 
     <ShortcutsDialog v-model:show="showShortcuts" :shortcuts="shortcuts()" />
+    <FullscreenView v-if="ui.fullscreenId" />
 
     <div v-if="!nodes.length" class="canvas-view__empty" data-testid="canvas-empty">
       <template v-if="canEdit">

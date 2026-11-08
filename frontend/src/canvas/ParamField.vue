@@ -39,14 +39,22 @@ function toOptions(list: string[]): SelectOption[] {
 
 const options = computed<SelectOption[]>(() => {
   if (props.param.values) return toOptions(props.param.values)
-  const remote = values.data.value?.values ?? []
+  // While a new search loads, the previous results are still shown: narrow them to the
+  // search here so Enter never picks a stale, non-matching value.
+  const term = search.value.toLowerCase()
+  const remote = (values.data.value?.values ?? []).filter(
+    (v) => !term || v.toLowerCase().includes(term),
+  )
   // Keep selected values visible even when the search hides them.
   const selected = Array.isArray(props.value)
     ? props.value.map(String)
     : props.value
       ? [String(props.value)]
       : []
-  return toOptions([...new Set([...selected, ...remote])])
+  // Naive UI drops the "use what I typed" tag option in remote mode; add it back so a value
+  // that isn't (yet) suggested can still be entered.
+  const typed = hasRemoteValues.value && search.value.trim() ? [search.value.trim()] : []
+  return toOptions([...new Set([...selected, ...remote, ...typed])])
 })
 
 const placeholder = computed(() => {
@@ -140,7 +148,7 @@ const timestamp = computed(() => (typeof props.value === 'string' ? Date.parse(p
       filterable
       :tag="!param.values"
       :remote="hasRemoteValues"
-      :loading="values.isFetching.value"
+      :loading="values.isFetching.value && !search"
       :value="Array.isArray(value) ? (value as string[]) : []"
       :options="options"
       :placeholder="param.values || hasRemoteValues ? placeholder : 'Type values, Enter to add'"

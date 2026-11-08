@@ -1,3 +1,4 @@
+import { resolveTime } from '@/data/params'
 import { http } from 'msw'
 import type { Dataset, QueryRequest, QueryResult, ValuesResponse } from '@/api/types'
 import { findMockDataset, MOCK_DATASETS, publicDataset, type MockDataset } from '../datasets'
@@ -194,14 +195,21 @@ export const dataHandlers = [
     const source = param.valuesFrom && findMockDataset(param.valuesFrom.dataset)
     if (!source || !param.valuesFrom) return ok<ValuesResponse>({ values: [], truncated: false })
     try {
-      const { entry } = await fetchRows(source, {}, false)
+      const fixed = Object.fromEntries(
+        Object.entries(param.valuesFrom.params ?? {}).map(([k, v]) => [
+          k,
+          typeof v === 'string' ? resolveTime(v) : v,
+        ]),
+      )
+      const { entry } = await fetchRows(source, fixed, false)
       const shaped = shapeRows(entry.rows, [], {
         kind: 'distinct',
         column: param.valuesFrom.column,
         search,
-        limit: limit + 1,
+        limit: param.valuesFrom.order === 'desc' ? 100_000 : limit + 1,
       })
-      const values = (shaped.data.value ?? []) as string[]
+      let values = (shaped.data.value ?? []) as string[]
+      if (param.valuesFrom.order === 'desc') values = values.reverse()
       return ok<ValuesResponse>({
         values: values.slice(0, limit),
         truncated: values.length > limit,

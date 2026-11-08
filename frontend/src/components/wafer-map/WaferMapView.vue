@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { NButton, NIcon, NSelect } from 'naive-ui'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import type { Shape } from '@/api/types'
 import { isDark } from '@/app/colorScheme'
-import { useDatasets } from '@/data/query'
+import { useDatasets, useParamValues } from '@/data/query'
 import { useComponentQuery } from '@/data/useComponentQuery'
 import type { ComponentViewProps } from '@/registry/types'
 import { useCanvasUiStore } from '@/stores/canvasUi'
@@ -18,6 +18,7 @@ import type { WaferMapConfig } from './schema'
 
 /** Wafer maps (docs/components.md#wafer-map): one wafer, a gallery, or stacked. */
 const props = defineProps<ComponentViewProps<WaferMapConfig>>()
+const emit = defineEmits<{ 'update-config': [patch: Partial<WaferMapConfig>] }>()
 
 const PAGE_SIZE = 25
 
@@ -90,7 +91,67 @@ watch(
       knownWafers.value = wafers
     }
   },
+  // Immediate: a remounted view (full screen, zooming back in) may get cached data at once.
+  { immediate: true },
 )
+
+// Gallery layout: the column count that gives the largest square tiles for the space.
+const mapsEl = ref<HTMLDivElement | null>(null)
+const mapsSize = ref({ w: 0, h: 0 })
+let mapsObserver: ResizeObserver | null = null
+watch(mapsEl, (el) => {
+  mapsObserver?.disconnect()
+  if (!el) return
+  mapsObserver = new ResizeObserver(([entry]) => {
+    if (entry) mapsSize.value = { w: entry.contentRect.width, h: entry.contentRect.height }
+  })
+  mapsObserver.observe(el)
+})
+onBeforeUnmount(() => mapsObserver?.disconnect())
+
+const MIN_TILE = 96
+const TITLE = 16
+const GAP = 6
+const galleryGrid = computed(() => {
+  const n = wafers.value.length
+  const { w, h } = mapsSize.value
+  if (!n || !w || !h) return undefined
+  let best = { cols: 1, size: 0 }
+  for (let cols = 1; cols <= n; cols += 1) {
+    const rows = Math.ceil(n / cols)
+    const size = Math.min((w - GAP * (cols - 1)) / cols, (h - GAP * (rows - 1)) / rows - TITLE)
+    if (size > best.size) best = { cols, size }
+  }
+  // Too small to fit everything: fall back to scrolling rows of minimum-size tiles.
+  if (best.size < MIN_TILE) return undefined
+  const rows = Math.ceil(n / best.cols)
+  return {
+    gridTemplateColumns: `repeat(${best.cols}, 1fr)`,
+    gridTemplateRows: `repeat(${rows}, 1fr)`,
+    overflow: 'hidden',
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Help when there is nothing to draw: die-level data exists only for lots that finished
+// wafer sort, so offer the most recent ones (the dataset's lot suggestions).
+// ---------------------------------------------------------------------------
+
+const needsHelp = computed(() => ['missing', 'empty'].includes(query.state.value))
+const recentLots = useParamValues(
+  () => props.config.dataset,
+  'lot',
+  '',
+  () => needsHelp.value && !!dataset.value?.params.some((p) => p.name === 'lot'),
+)
+const suggestions = computed(() => (recentLots.data.value?.values ?? []).slice(0, 4))
+const lotFromFilter = computed(() =>
+  query.bindings.value.some((b) => b.param === 'lot' && b.level && b.level !== 'dimension'),
+)
+
+function showLot(lot: string): void {
+  emit('update-config', { params: { ...props.config.params, lot: [lot] } })
+}
 
 // ---------------------------------------------------------------------------
 // Data for drawing
@@ -234,6 +295,30 @@ const legendGradient = computed(() => `linear-gradient(to right, ${scale.value.s
     :params="query.params.value"
     @retry="query.retry"
   >
+    <template #hint>
+      <div v-if="needsHelp" class="wafer__help nodrag" data-testid="wafer-help">
+        <p>
+          Die-level data exists only for lots that finished wafer sort (status COMPLETE).
+          <template v-if="lotFromFilter"
+            >The lot comes from a filter; pick a tested lot there.</template
+          >
+        </p>
+        <div v-if="suggestions.length && editable && !lotFromFilter" class="wafer__picks">
+          <span>Recently tested:</span>
+          <NButton
+            v-for="lot in suggestions"
+            :key="lot"
+            size="tiny"
+            secondary
+            :data-lot="lot"
+            data-testid="wafer-pick"
+            @click.stop="showLot(lot)"
+          >
+            {{ lot }}
+          </NButton>
+        </div>
+      </div>
+    </template>
     <div ref="root" class="wafer" :data-mode="config.mode" data-testid="wafer-map">
       <div class="wafer__toolbar nodrag">
         <template v-if="config.mode === 'single'">
@@ -281,8 +366,10 @@ const legendGradient = computed(() => `linear-gradient(to right, ${scale.value.s
       </div>
 
       <div
+        ref="mapsEl"
         class="wafer__maps"
         :class="config.mode === 'gallery' ? 'is-gallery' : 'is-single'"
+        :style="config.mode === 'gallery' ? galleryGrid : undefined"
         :data-own-keyboard="config.mode === 'single' ? '' : undefined"
       >
         <figure
@@ -440,6 +527,25 @@ const legendGradient = computed(() => `linear-gradient(to right, ${scale.value.s
 
 .wafer__legend-note {
   font-style: italic;
+}
+
+.wafer__help {
+  max-width: 420px;
+  font-size: 12px;
+  color: var(--app-text-muted);
+  text-align: center;
+}
+
+.wafer__help p {
+  margin: 4px 0 6px;
+}
+
+.wafer__picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .wafer__tooltip {

@@ -199,6 +199,8 @@ Owner or admin only.
 
 ### `GET /api/datasets/{id}/values/{param}?search=&limit=50`
 
+Suggested values for a param. For `valuesFrom` params, these are the distinct `column` values of `valuesFrom.dataset`, run with the fixed `valuesFrom.params` (relative times allowed) and sorted descending when `valuesFrom.order` is `"desc"`. Example: `wafer_dies.lot` suggests `lots` with `status=COMPLETE` from the last 60 days, newest first, because only lots that finished wafer sort have die-level data.
+
 Values for a parameter picker (via its `values_from`).
 
 ```json

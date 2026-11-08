@@ -131,6 +131,14 @@ Undo and redo cover only your own edits in this session. Undo of an edit that so
 
 Right-click a component, a group or empty canvas for context actions (the same as the shortcuts above, plus "Restrict access…" for owners and admins).
 
+### Full screen
+
+Any component can fill the window: the ⤢ button in its header (on hover or when selected), "Full screen" in its menu, or `F` with one component selected. The component is fully interactive there (it's active, so wheel and drag go to it). **Esc** or "Exit full screen" returns to the canvas exactly as it was: the canvas is never moved, only covered, and focus goes back to the component. Esc first closes any open dropdown inside the component. Canvas shortcuts pause while a component is full screen. The canvas frame shows "Shown full screen" meanwhile, so only one live copy of the component runs.
+
+### Side panels
+
+The palette and the inspector can be collapsed and resized: drag their inner edge (200 px up to half the window), or focus it and use the arrow keys (Shift: bigger steps). Double-click the edge to reset. Width and collapsed state are remembered per browser.
+
 ### Help
 
 Press `?` (or the keyboard button by the zoom controls) for a cheat sheet built from the registered shortcuts, plus the mouse gestures. An empty canvas shows a few first-run tips until they're dismissed (remembered per browser).

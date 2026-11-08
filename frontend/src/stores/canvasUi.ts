@@ -30,6 +30,9 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
   /** Component whose "Restrict access…" dialog is open. */
   const accessDialogFor = ref<string | null>(null)
 
+  /** Component shown full screen (FullscreenView), if any. */
+  const fullscreenId = ref<string | null>(null)
+
   /** Component to highlight (e.g. the source of a hovered filter chip). */
   const highlightId = ref<string | null>(null)
 
@@ -44,12 +47,14 @@ export const useCanvasUiStore = defineStore('canvasUi', () => {
     selectedIds.value = []
     activeId.value = null
     rowSelections.value = {}
+    fullscreenId.value = null
   }
 
   return {
     selectedIds,
     activeId,
     highlightId,
+    fullscreenId,
     accessDialogFor,
     rowSelections,
     setSelection,

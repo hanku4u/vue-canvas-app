@@ -10,6 +10,7 @@ import {
   Ellipsis,
   EyeOff,
   Lock,
+  Maximize2,
   ShieldUser,
   RotateCw,
   SearchCode,
@@ -156,7 +157,9 @@ function icon(c: Component) {
 }
 
 const menu = computed<DropdownOption[]>(() => {
-  const items: DropdownOption[] = []
+  const items: DropdownOption[] = [
+    { key: 'fullscreen', label: menuLabel('Full screen', { hint: 'F' }), icon: icon(Maximize2) },
+  ]
   if (dataInfo.value) {
     items.push(
       { key: 'refresh', label: menuLabel('Refresh data', { hint: 'R' }), icon: icon(RotateCw) },
@@ -195,6 +198,7 @@ const menu = computed<DropdownOption[]>(() => {
 function onMenu(key: string): void {
   if (key === 'refresh') dataInfo.value?.refresh()
   if (key === 'details') showDetails.value = true
+  if (key === 'fullscreen') ui.fullscreenId = props.id
   if (key === 'access') ui.accessDialogFor = props.id
   if (key === 'duplicate') store.duplicateComponents([props.id])
   if (key === 'front') store.bringToFront([props.id])
@@ -278,6 +282,24 @@ function onMenu(key: string): void {
         :title="component.title"
         :info="dataInfo"
       />
+      <NTooltip>
+        <template #trigger>
+          <NButton
+            quaternary
+            circle
+            size="tiny"
+            class="frame__fullscreen nodrag"
+            aria-label="Full screen"
+            data-testid="frame-fullscreen"
+            @click.stop="ui.fullscreenId = id"
+          >
+            <template #icon>
+              <NIcon aria-hidden="true"><Maximize2 /></NIcon>
+            </template>
+          </NButton>
+        </template>
+        Full screen (F)
+      </NTooltip>
       <NDropdown
         v-if="menu.length"
         trigger="click"
@@ -302,7 +324,11 @@ function onMenu(key: string): void {
     </header>
 
     <div class="frame__body" :class="{ 'nodrag nowheel': active }">
-      <div v-if="!definition" class="frame__problem">
+      <div v-if="ui.fullscreenId === component.id" class="frame__problem">
+        <NIcon aria-hidden="true" :size="20"><Maximize2 /></NIcon>
+        <span>Shown full screen</span>
+      </div>
+      <div v-else-if="!definition" class="frame__problem">
         <NIcon aria-hidden="true" :size="20"><CircleQuestionMark /></NIcon>
         <span>Unknown component type “{{ component.type }}”</span>
       </div>
@@ -450,6 +476,17 @@ function onMenu(key: string): void {
   font-weight: 400;
   color: var(--app-text-muted);
   white-space: nowrap;
+}
+
+.frame__fullscreen {
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.frame:hover .frame__fullscreen,
+.frame.is-selected .frame__fullscreen,
+.frame__fullscreen:focus-visible {
+  opacity: 1;
 }
 
 .frame__menu {

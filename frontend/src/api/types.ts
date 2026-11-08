@@ -182,7 +182,16 @@ export interface DatasetParam {
   /** Filter dimension this param can bind to (e.g. "tool_id", "time_range.start"). */
   filter: string | null
   /** Where a value picker gets its options. */
-  valuesFrom: { dataset: string; column: string } | null
+  /**
+   * Suggested values: distinct `column` of another dataset, optionally queried with fixed
+   * `params` (relative times allowed) and listed newest/highest first with `order: 'desc'`.
+   */
+  valuesFrom: {
+    dataset: string
+    column: string
+    params?: Record<string, unknown>
+    order?: 'asc' | 'desc'
+  } | null
   /** Allowed values for enums. */
   values?: string[]
   /** Default value; datetimes may be relative ("now", "-7d", "-24h"). */

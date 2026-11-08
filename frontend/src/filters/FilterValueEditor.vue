@@ -39,7 +39,17 @@ const values = useDimensionValues(
 
 const list = computed(() => (Array.isArray(props.value) ? props.value : []))
 const options = computed<SelectOption[]>(() =>
-  [...new Set([...list.value, ...(values.data.value?.values ?? [])])].map((v) => ({
+  // Narrow stale results (from the previous search) so Enter never picks a non-match.
+  [
+    ...new Set([
+      ...list.value,
+      ...(values.data.value?.values ?? []).filter((v) =>
+        v.toLowerCase().includes(search.value.toLowerCase()),
+      ),
+      // Remote mode drops Naive's typed-value tag option; keep it.
+      ...(search.value.trim() ? [search.value.trim()] : []),
+    ]),
+  ].map((v) => ({
     label: v,
     value: v,
   })),
@@ -107,7 +117,7 @@ function startCustom(): void {
         filterable
         tag
         :remote="dimension.hasValues"
-        :loading="values.isFetching.value"
+        :loading="values.isFetching.value && !search"
         :value="list"
         :options="options"
         :placeholder="dimension.hasValues ? 'Search or paste a list' : 'Type or paste values'"

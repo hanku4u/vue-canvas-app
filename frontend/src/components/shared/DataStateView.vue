@@ -47,6 +47,7 @@ const paramSummary = computed(() =>
         <strong>{{ (missing ?? []).map((p) => p.label ?? p.name).join(', ') }}</strong>
         in the inspector to load data.
       </span>
+      <slot name="hint" />
     </div>
     <div v-else-if="state === 'loading'" class="data-state__loading">
       <NSkeleton text :repeat="5" />
@@ -70,6 +71,7 @@ const paramSummary = computed(() =>
       <NIcon aria-hidden="true" :size="22"><Database /></NIcon>
       <span>No data for the current parameters.</span>
       <small v-if="paramSummary" class="data-state__params">{{ paramSummary }}</small>
+      <slot name="hint" />
     </div>
     <div v-else class="data-state__content" :class="{ 'is-refetching': state === 'refetching' }">
       <slot />

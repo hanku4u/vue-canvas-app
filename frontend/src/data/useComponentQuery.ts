@@ -145,7 +145,7 @@ export function useComponentQuery(options: ComponentQueryOptions) {
 
   onBeforeUnmount(() => {
     clearTimeout(timer)
-    dataStore.remove(options.componentId.value)
+    dataStore.remove(options.componentId.value, refresh)
   })
 
   return {

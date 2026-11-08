@@ -31,7 +31,13 @@ export const useComponentDataStore = defineStore('componentData', () => {
     byId.set(id, info)
   }
 
-  function remove(id: string): void {
+  /**
+   * Forget a component's info. With `owner` (the publisher's refresh function), only if
+   * that publisher still owns the entry: when a view moves (e.g. into full screen) the new
+   * instance may publish before the old one unmounts.
+   */
+  function remove(id: string, owner?: () => void): void {
+    if (owner && byId.get(id)?.refresh !== owner) return
     byId.delete(id)
   }
 
