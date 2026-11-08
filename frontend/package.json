@@ -86,7 +86,7 @@
   },
   "fabCanvasPackage": {
     "name": "fab-canvas",
-    "license": "UNLICENSED",
+    "license": "MIT",
     "repository": {
       "type": "git",
       "url": "git+https://github.com/hanku4u/vue-canvas-app.git",

@@ -16,3 +16,7 @@ cd mock-data-api
 uv sync
 uv run mock-data-api   # http://127.0.0.1:8001/docs
 ```
+
+## License
+
+[MIT](LICENSE)

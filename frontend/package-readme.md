@@ -82,3 +82,7 @@ Set these in `config.json` (prebuilt app) or pass them to `mountApp` (embedded):
 ## Versioning
 
 The package follows semver. A change to `contract/openapi.yaml` that requires backend changes is a major version.
+
+## License
+
+MIT
