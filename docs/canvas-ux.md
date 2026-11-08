@@ -64,6 +64,12 @@ See [admin.md](admin.md).
 | --- | --- |
 | Pan | Drag on empty canvas · Space + drag · middle-mouse drag · trackpad two-finger scroll |
 | Zoom | Ctrl/⌘ + wheel · trackpad pinch · `+` / `-` · zoom controls |
+
+**Zoom gestures never zoom the browser on the canvas page.** Trackpad pinch arrives as Ctrl+wheel, and before this change any that landed outside the bare canvas zoomed the whole page. That included pinches over an active chart, a side panel or the filter bar, or ones that drifted there mid-gesture. Now the page owns Ctrl/⌘ + wheel, pinch and Ctrl/⌘ + `=` / `-` / `0` (`canvas/zoomGuard.ts`):
+- over the canvas area (components included) they zoom the canvas around the pointer;
+- anywhere else (panels, full screen, dialogs) they do nothing.
+
+Browser zoom remains available from the browser menu and on every other page.
 | Zoom to fit all | `Shift + 1` |
 | Zoom to selection | `Shift + 2` |
 | Reset zoom to 100% | `Ctrl/⌘ + 0` |

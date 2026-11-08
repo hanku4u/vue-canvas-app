@@ -33,6 +33,7 @@ import { pasteInputs, readClipboard, toClipboard, writeClipboard } from './clipb
 import { PALETTE_MIME } from './palette'
 import FullscreenView from './FullscreenView.vue'
 import ShortcutsDialog from './ShortcutsDialog.vue'
+import { useCanvasZoomGuard } from './zoomGuard'
 import { useShortcuts, type Shortcut } from './shortcuts'
 import { loadViewport, saveViewport } from './viewportStorage'
 
@@ -58,9 +59,18 @@ const {
   project,
   viewport,
   vueFlowRef,
+  setViewport,
 } = useVueFlow(flowId)
 
 useModifierKeys()
+useCanvasZoomGuard({
+  container: vueFlowRef,
+  viewport,
+  setViewport,
+  minZoom: MIN_ZOOM,
+  maxZoom: MAX_ZOOM,
+  canvasActive: () => !ui.fullscreenId,
+})
 usePublishing()
 
 const savedViewport = loadViewport(props.canvasId)
