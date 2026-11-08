@@ -1,5 +1,9 @@
 # Publish the `fab-canvas` npm package (docs/packaging.md).
-# Runs only when a version tag like v0.1.0 is pushed, or by hand; needs the NPM_TOKEN secret.
+# Runs only when a version tag like v0.1.0 is pushed, or by hand.
+#
+# Authentication is npm *trusted publishing* (OIDC): no token or 2FA code is involved.
+# npmjs.com must list this repository and workflow (publish.yml) as a trusted publisher
+# for the package; see docs/packaging.md. Provenance is attached automatically.
 name: Publish package
 
 on:
@@ -14,7 +18,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # npm trusted publishing (OIDC) and provenance
 
 jobs:
   publish:
@@ -30,6 +34,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
           registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm >= 11.5.1.
+      - run: npm install -g npm@^11.5.1
       - run: npm ci
       - name: Tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -41,6 +47,4 @@ jobs:
       - run: npm run build:package
       - run: npm run verify:package
       - name: Publish
-        run: npm publish ./package --access public --provenance ${{ (github.event_name == 'workflow_dispatch' && inputs.dry-run) && '--dry-run' || '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./package --access public ${{ (github.event_name == 'workflow_dispatch' && inputs.dry-run) && '--dry-run' || '' }}

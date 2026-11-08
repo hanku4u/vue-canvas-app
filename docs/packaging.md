@@ -46,9 +46,29 @@ npm run verify:package   # consumer smoke test
 
 The package name, license and repository come from `fabCanvasPackage` in `frontend/package.json`, and the version from its `version`. CI builds and verifies the package on every push.
 
-To release:
-1. Bump `version` in `frontend/package.json`. Semver: a contract change that requires backend changes is a major version.
-2. Commit, then push a tag `v<version>`, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
-3. `.github/workflows/publish.yml` checks that the tag matches the version, runs the tests, builds and verifies the package, and runs `npm publish --access public --provenance`.
+Publishing uses npm **trusted publishing**: GitHub Actions authenticates to npm with a short-lived OIDC identity, so there is no stored token and no 2FA prompt, and provenance is attached automatically. npm only lets you configure a trusted publisher on a package that already exists, so the first release is manual.
 
-It needs an npm **automation token** in the repository secret `NPM_TOKEN`. Run the workflow by hand with "dry run" to see what would be published.
+**First release (once, from your machine):**
+
+```bash
+cd frontend
+npm login                       # your npm account; 2FA as usual
+npm run build:package
+npm run verify:package
+npm publish ./package --access public   # asks for your 2FA code
+```
+
+**Then connect GitHub Actions:** on npmjs.com, go to the package → Settings → Trusted publishing and add a GitHub Actions publisher with:
+- owner `hanku4u`
+- repository `vue-canvas-app`
+- workflow `publish.yml`
+- no environment
+
+Optionally, set "Publishing access" to require 2FA and disallow tokens, so only the workflow (and you, with 2FA) can publish.
+
+**Every release after that:**
+1. Bump `version` in `frontend/package.json`. Semver: a contract change that requires backend changes is a major version.
+2. Commit, then push a tag `v<version>`, e.g. `git tag v0.2.0 && git push origin v0.2.0`.
+3. `.github/workflows/publish.yml` checks that the tag matches the version, runs the tests, builds and verifies the package, and publishes it.
+
+To see what would be published without publishing, run the workflow by hand with "dry run" checked.
