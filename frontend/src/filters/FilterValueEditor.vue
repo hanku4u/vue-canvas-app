@@ -90,7 +90,13 @@ function startCustom(): void {
 </script>
 
 <template>
-  <div ref="root" class="filter-editor" :data-dimension="dimension.id" data-testid="filter-editor">
+  <div
+    ref="root"
+    class="filter-editor"
+    :class="{ 'is-time': dimension.type === 'time_range' }"
+    :data-dimension="dimension.id"
+    data-testid="filter-editor"
+  >
     <template v-if="dimension.type === 'time_range'">
       <NRadioGroup
         size="small"
@@ -106,7 +112,9 @@ function startCustom(): void {
         :value="absolute"
         @update:value="setCustom"
       />
-      <NButton v-else text size="small" @click="startCustom">Custom range…</NButton>
+      <NButton v-else text size="small" class="filter-editor__custom" @click="startCustom">
+        Custom range…
+      </NButton>
     </template>
 
     <div v-else class="filter-editor__list" @paste.capture="onPaste">
@@ -141,6 +149,20 @@ function startCustom(): void {
   gap: 8px;
   width: 360px;
   max-width: calc(100vw - 48px);
+}
+
+/* Time ranges: as wide as the preset buttons (they don't fit in 360px), never wrapping. */
+.filter-editor.is-time {
+  width: max-content;
+}
+
+.filter-editor.is-time :deep(.n-radio-group) {
+  display: flex;
+  white-space: nowrap;
+}
+
+.filter-editor__custom {
+  align-self: flex-start;
 }
 
 .filter-editor__hint {
