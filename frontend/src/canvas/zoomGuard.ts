@@ -12,6 +12,28 @@ import type { ViewportTransform } from '@vue-flow/core'
  * - anywhere else (panels, full screen, dialogs) they're blocked, doing nothing.
  * Browser zoom stays available from the browser menu, and on every other page.
  */
+/** Zoom change per mouse-wheel notch (Ctrl/⌘ + wheel): 10%. */
+export const WHEEL_STEP = 1.1
+/** Trackpad pinch: zoom ∝ gesture size (e^(-0.01·deltaY)); a typical event is 1–5%. */
+const PINCH_RATE = 0.01
+/** Never more than this per event, whatever the device reports. */
+const MAX_STEP = 1.25
+
+/**
+ * Zoom factor for a Ctrl/⌘ + wheel event. Mouse wheels report large, coarse deltas per
+ * notch (~100 px, or 1–3 lines); trackpad pinches report many small ones. Treating both
+ * with one formula makes either the wheel jumpy or the pinch sluggish, so:
+ * - wheel notches (line/page mode, or pixel deltas ≥ 50) step by WHEEL_STEP per notch;
+ * - small pixel deltas (pinch, smooth scrolling) scale continuously with the gesture.
+ */
+export function wheelZoomFactor(event: Pick<WheelEvent, 'deltaY' | 'deltaMode'>): number {
+  const { deltaY, deltaMode } = event
+  if (!deltaY) return 1
+  const notch = deltaMode !== 0 || Math.abs(deltaY) >= 50
+  const factor = notch ? WHEEL_STEP ** (deltaY < 0 ? 1 : -1) : Math.exp(-deltaY * PINCH_RATE)
+  return Math.min(MAX_STEP, Math.max(1 / MAX_STEP, factor))
+}
+
 export function useCanvasZoomGuard(options: {
   container: Ref<HTMLElement | null>
   viewport: Ref<ViewportTransform>
@@ -54,10 +76,7 @@ export function useCanvasZoomGuard(options: {
     event.stopPropagation()
     const rect = overCanvas(event)
     if (!rect) return
-    // Same feel as d3-zoom (Vue Flow): pixel deltas, line deltas, page deltas.
-    const unit = event.deltaMode === 1 ? 0.05 : event.deltaMode === 2 ? 1 : 0.002
-    const factor = 2 ** (-event.deltaY * unit * 10)
-    zoomAround(factor, event.clientX - rect.left, event.clientY - rect.top)
+    zoomAround(wheelZoomFactor(event), event.clientX - rect.left, event.clientY - rect.top)
   }
 
   /** Ctrl/⌘ + = / + / − zoom the canvas around its center (Ctrl/⌘ 0 is a canvas shortcut). */
