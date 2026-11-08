@@ -245,7 +245,7 @@ const legendGradient = computed(() => `linear-gradient(to right, ${scale.value.s
             @click.stop="stepWafer(-1)"
           >
             <template #icon>
-              <NIcon><ChevronLeft /></NIcon>
+              <NIcon aria-hidden="true"><ChevronLeft /></NIcon>
             </template>
           </NButton>
           <NSelect
@@ -259,7 +259,7 @@ const legendGradient = computed(() => `linear-gradient(to right, ${scale.value.s
           />
           <NButton quaternary circle size="tiny" aria-label="Next wafer" @click.stop="stepWafer(1)">
             <template #icon>
-              <NIcon><ChevronRight /></NIcon>
+              <NIcon aria-hidden="true"><ChevronRight /></NIcon>
             </template>
           </NButton>
         </template>

@@ -21,7 +21,11 @@ export function menuLabel(text: string, options: MenuLabelOptions = {}): () => V
       options.hint
         ? h('kbd', { class: 'menu-label__hint' }, options.hint)
         : options.checked
-          ? h(NIcon, { class: 'menu-label__check', size: 14 }, { default: () => h(Check) })
+          ? h(
+              NIcon,
+              { class: 'menu-label__check', size: 14, 'aria-hidden': 'true' },
+              { default: () => h(Check) },
+            )
           : null,
     ])
 }

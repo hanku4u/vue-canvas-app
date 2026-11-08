@@ -22,7 +22,8 @@ In development, `/api` is served by an **in-browser mock of the FastAPI backend*
 | `npm run format:check` | Prettier (`npm run format` writes) |
 | `npm run type-check` | vue-tsc |
 | `npm run test:unit:run` | Vitest once (`npm run test:unit` watches) |
-| `npx playwright test` | E2E against the dev server with MSW (first run: `npx playwright install chromium`) |
+| `npx playwright test` | E2E against the dev server with MSW (first run: `npx playwright install chromium`), including axe accessibility checks |
+| `npm run bench` | Performance benchmark (36 data components + 100 notes); prints load, query fan-out, fps and heap |
 | `npm run build` | Type-check + production build (MSW is excluded from production builds) |
 
 ## Layout

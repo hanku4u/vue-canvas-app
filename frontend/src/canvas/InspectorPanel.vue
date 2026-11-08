@@ -116,7 +116,7 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
     <!-- One group -->
     <template v-if="singleGroup">
       <div class="inspector__type">
-        <NIcon :size="16"><Group /></NIcon>
+        <NIcon aria-hidden="true" :size="16"><Group /></NIcon>
         <span>Group</span>
         <span v-if="!store.canEdit" class="inspector__readonly">view only</span>
       </div>
@@ -213,7 +213,9 @@ const selectionEditable = computed(() => ui.selectedIds.some((id) => store.edita
     <!-- One component -->
     <template v-else-if="single">
       <div class="inspector__type">
-        <NIcon :size="16"><component :is="definition?.icon ?? CircleQuestionMark" /></NIcon>
+        <NIcon aria-hidden="true" :size="16"
+          ><component :is="definition?.icon ?? CircleQuestionMark"
+        /></NIcon>
         <span>{{ definition?.label ?? single.type }}</span>
         <span v-if="!editable" class="inspector__readonly">view only</span>
       </div>

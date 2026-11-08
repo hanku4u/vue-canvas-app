@@ -98,6 +98,7 @@ const timestamp = computed(() => (typeof props.value === 'string' ? Date.parse(p
 
     <template v-if="param.type === 'datetime' || param.type === 'date'">
       <NSelect
+        :input-props="{ 'aria-label': param.label ?? param.name }"
         size="small"
         :value="timeMode === 'relative' ? ((value as string) ?? null) : '__custom'"
         :options="timeOptions"
@@ -120,6 +121,7 @@ const timestamp = computed(() => (typeof props.value === 'string' ? Date.parse(p
     </template>
 
     <NSelect
+      :input-props="{ 'aria-label': param.label ?? param.name }"
       v-else-if="param.type === 'enum'"
       size="small"
       :value="(value as string) ?? null"
@@ -131,6 +133,7 @@ const timestamp = computed(() => (typeof props.value === 'string' ? Date.parse(p
     />
 
     <NSelect
+      :input-props="{ 'aria-label': param.label ?? param.name }"
       v-else-if="param.type === 'string[]'"
       size="small"
       multiple
@@ -149,6 +152,7 @@ const timestamp = computed(() => (typeof props.value === 'string' ? Date.parse(p
     />
 
     <NSelect
+      :input-props="{ 'aria-label': param.label ?? param.name }"
       v-else-if="param.type === 'string' && hasRemoteValues"
       size="small"
       filterable

@@ -1,6 +1,6 @@
 import { Table2 } from '@lucide/vue'
+import { lazyView } from '@/registry/lazy'
 import type { ComponentDefinition } from '@/registry/types'
-import DataPreviewView from './DataPreviewView.vue'
 import { dataPreviewConfigSchema, type DataPreviewConfig } from './schema'
 
 export const dataPreviewDefinition: ComponentDefinition<DataPreviewConfig> = {
@@ -14,6 +14,6 @@ export const dataPreviewDefinition: ComponentDefinition<DataPreviewConfig> = {
   configVersion: 1,
   defaultConfig: () => dataPreviewConfigSchema.parse({}),
   defaultTitle: () => 'Data preview',
-  view: DataPreviewView,
+  view: lazyView(() => import('./DataPreviewView.vue')),
   dataKind: 'data-preview',
 }

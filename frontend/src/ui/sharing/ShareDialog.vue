@@ -99,6 +99,7 @@ async function save(): Promise<void> {
               class="share__role"
               :value="share.role"
               :options="ROLES"
+              :input-props="{ 'aria-label': `Role for ${share.knoxId}` }"
               data-testid="share-role"
               @update:value="(v: ShareRole) => setRole(share.knoxId, v)"
             />

@@ -20,7 +20,14 @@ export const lightThemeOverrides: GlobalThemeOverrides = {
     primaryColorHover: '#6366f1',
     primaryColorPressed: '#4338ca',
     primaryColorSuppl: '#6366f1',
+    // Darker than Naive's default info blue so info tags pass 4.5:1 on their tint.
+    infoColor: '#1c5cab',
+    infoColorHover: '#256abf',
+    infoColorPressed: '#184f95',
+    infoColorSuppl: '#256abf',
   },
+  // Menu group titles: Naive's default gray is 4.2:1 on white.
+  Menu: { groupTextColor: '#5f6670' },
 }
 
 export const darkThemeOverrides: GlobalThemeOverrides = {

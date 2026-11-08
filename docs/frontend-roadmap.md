@@ -337,7 +337,7 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - **Empty and error states:** a shared `AdminState` component (skeleton, error with Retry, empty), exercised in e2e.
 - **Not yet:** restricted-component ACL editing inside Manage access (open the canvas instead), and the read-only dataset and filter lists from admin.md "Later".
 
-## F13: Hardening · M
+## F13: Hardening · M ✅
 
 **Scope**
 - **Performance:** a benchmark canvas (30+ data components and 100 notes). Profile pan and zoom (target about 60 fps), memory, and query fan-out. Tune LOD thresholds and debounce.
@@ -348,6 +348,35 @@ MSW is toggled by `VITE_API_MOCK=1`. Handlers live in `frontend/src/mocks/` and 
 - User-facing help: shortcut cheat sheet (`?`), first-run hints.
 
 **Done when:** the benchmark meets targets and the e2e demo test is green.
+
+**As built:**
+- **Benchmark:** "Benchmark canvas (dev)" on the home page generates a canvas: 6 groups × 6 data components (SPC and trend charts, lot tables, stacked wafer maps) plus 100 notes. `npm run bench` (`e2e/bench.spec.ts`, tagged `@bench`, outside the normal run) measures it. Headless Chromium, dev build, 1600×1000:
+
+  | Measure | Result | Target |
+  | --- | --: | --: |
+  | Open the canvas until all 136 components are loaded | 1.3 s | — |
+  | `/api/query` calls at fit-all (data components show previews) | 0 | ≤ 6 |
+  | Calls after zooming to one group (12 components drawn) | 12 | ≤ 2 per drawn component |
+  | Panning, fit-all | 60 fps | ~60 |
+  | Panning at 100% over a group of charts, tables and maps | 60 fps | ~60 |
+  | Zooming in and out | ≥ 60 fps | ~60 |
+  | JS heap after the run (dev build) | ~190 MB | — |
+
+  Existing LOD thresholds and the 250 ms query debounce held up, so neither was retuned.
+- **Bundle:** table, chart and data-preview views (with AG Grid and ECharts) load on first use (`registry/lazy.ts`), and the table inspector no longer pulls AG Grid. The editor chunk went from 1,765 kB (518 kB gzipped) to 754 kB (232 kB); AG Grid (956 kB) and ECharts (617 kB) are lazy chunks. Arrow was already lazy.
+- **Accessibility:** `e2e/a11y.spec.ts` runs axe (WCAG 2 A/AA) on home, the canvas, an empty canvas with tips, three admin pages and two dialogs, in light *and* dark mode. Any serious or critical violation fails it. Fixes made along the way:
+  - Decorative icons are `aria-hidden`.
+  - The info-tag and menu-group colors were darkened to reach 4.5:1.
+  - Links are themed, so they're readable in dark mode.
+  - Task-list checkboxes and search inputs inside selects are labeled, and so is the cache progress bar.
+  - Admin cards use real headings.
+  - A small patch (`app/a11yFixes.ts`) adds the missing `aria-level` on Naive UI's dialog card headers.
+
+  Keyboard paths are tested: palette → Enter adds a component; the filter bar → add filter → arrow keys → the value picker gets focus → type and Enter. The category palette was already validated in F8.
+- **End-to-end demo:** the F10 ★ test runs in CI against MSW and the mock data API.
+- **Error boundary:** per component (since F4), now covered by e2e. A dev-only hook (`window.__crashComponents`) makes a component throw; the canvas and its neighbours keep working, and Retry recovers.
+- **Help:** a `?` cheat sheet generated from the registered shortcuts, with groups, key caps and mouse gestures, and a button by the zoom controls. First-run tips appear on empty canvases.
+- **Not done (needs the real backend):** switching from MSW to FastAPI endpoints and generating types from its OpenAPI. Both wait until FastAPI exists. The handoff points are in "Sequencing notes" below.
 
 ---
 

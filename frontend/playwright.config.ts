@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  /* Benchmarks (tagged @bench) only run with BENCH=1 (`npm run bench`). */
+  grepInvert: process.env.BENCH ? undefined : /@bench/,
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {

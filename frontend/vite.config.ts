@@ -9,6 +9,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [vue(), vueDevTools()],
+    build: {
+      // AG Grid (~950 kB) and ECharts (~620 kB) are lazy chunks loaded only when a canvas
+      // shows a table or chart; the initial editor chunk is ~750 kB (230 kB gzipped).
+      chunkSizeWarningLimit: 1000,
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

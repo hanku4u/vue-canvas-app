@@ -13,6 +13,8 @@ import { onBeforeUnmount, onMounted } from 'vue'
 export interface Shortcut {
   combo: string | string[]
   description: string
+  /** Section in the shortcut cheat sheet. */
+  group?: 'Selection' | 'Edit' | 'Arrange' | 'View' | 'Help'
   handler: (event: KeyboardEvent) => void
   /** Run even while typing in an input (default false). */
   allowInInputs?: boolean
@@ -110,4 +112,27 @@ export function useShortcuts(shortcuts: () => Shortcut[]): void {
   const onKeydown = (event: KeyboardEvent) => dispatchShortcut(event, shortcuts())
   onMounted(() => window.addEventListener('keydown', onKeydown))
   onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+}
+
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+
+const KEY_LABELS: Record<string, string> = {
+  mod: IS_MAC ? '⌘' : 'Ctrl',
+  shift: 'Shift',
+  alt: IS_MAC ? '⌥' : 'Alt',
+  arrowup: '↑',
+  arrowdown: '↓',
+  arrowleft: '←',
+  arrowright: '→',
+  escape: 'Esc',
+  delete: 'Delete',
+  backspace: 'Backspace',
+  enter: 'Enter',
+  space: 'Space',
+}
+
+/** Keys of a combo for display: "mod+shift+z" → ["Ctrl", "Shift", "Z"]. */
+export function comboKeys(combo: string): string[] {
+  const parts = combo === '+' ? ['+'] : combo.toLowerCase().split(/\+(?!$)/)
+  return parts.map((p) => KEY_LABELS[p] ?? (p.length === 1 ? p.toUpperCase() : p))
 }

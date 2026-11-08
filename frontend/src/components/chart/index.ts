@@ -1,8 +1,8 @@
 import { ChartLine } from '@lucide/vue'
+import { lazyView } from '@/registry/lazy'
 import type { ComponentDefinition } from '@/registry/types'
 import ChartInspector from './ChartInspector.vue'
 import ChartPreview from './ChartPreview.vue'
-import ChartView from './ChartView.vue'
 import { chartConfigSchema, type ChartConfig } from './schema'
 
 export const chartDefinition: ComponentDefinition<ChartConfig> = {
@@ -16,7 +16,7 @@ export const chartDefinition: ComponentDefinition<ChartConfig> = {
   configVersion: 1,
   defaultConfig: () => chartConfigSchema.parse({}),
   defaultTitle: () => 'Chart',
-  view: ChartView,
+  view: lazyView(() => import('./ChartView.vue')),
   preview: ChartPreview,
   inspector: ChartInspector,
   dataKind: 'chart',

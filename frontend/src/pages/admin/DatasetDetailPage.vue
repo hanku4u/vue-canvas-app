@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { NBreadcrumb, NBreadcrumbItem, NCard, NDataTable, NList, NListItem } from 'naive-ui'
+import { NBreadcrumb, NBreadcrumbItem, NDataTable, NList, NListItem } from 'naive-ui'
 import { useDatasetDetail } from '@/api/admin'
 import { formatDuration, formatPercent } from '@/ui/format'
 import { STATUS, type ChartTokens } from '@/ui/vizPalette'
+import AdminCard from './AdminCard.vue'
 import AdminChart from './AdminChart.vue'
 import AdminState from './AdminState.vue'
 import { baseAxes } from './chartOptions'
@@ -107,9 +108,9 @@ const errorsChart = (tokens: ChartTokens) => ({
             :build="errorsChart"
             :height="240"
           />
-          <NCard v-else size="small" title="Errors by code">
+          <AdminCard v-else size="small" title="Errors by code">
             <p class="muted">No errors in this range.</p>
-          </NCard>
+          </AdminCard>
         </div>
         <h3 class="page__section">Slowest calls</h3>
         <NDataTable

@@ -19,7 +19,7 @@ const look = computed(
 
 <template>
   <span class="status" :data-status="status" data-testid="health-status">
-    <NIcon :color="look.color" :size="16"><component :is="look.icon" /></NIcon>
+    <NIcon aria-hidden="true" :color="look.color" :size="16"><component :is="look.icon" /></NIcon>
     {{ look.label }}
   </span>
 </template>

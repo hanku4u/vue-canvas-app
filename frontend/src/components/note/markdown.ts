@@ -19,7 +19,8 @@ md.core.ruler.after('inline', 'task-lists', (state) => {
     if (!first || !match) continue
     first.content = first.content.slice(match[0].length)
     const checkbox = new state.Token('html_inline', '', 0)
-    checkbox.content = `<input type="checkbox" disabled${match[1] === ' ' ? '' : ' checked'}> `
+    const done = match[1] !== ' '
+    checkbox.content = `<input type="checkbox" disabled${done ? ' checked' : ''} aria-label="${done ? 'Done' : 'Not done'}"> `
     inline.children?.unshift(checkbox)
     tokens[i - 2]?.attrJoin('class', 'task-list-item')
   }

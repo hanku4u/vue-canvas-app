@@ -152,7 +152,7 @@ function onResizeEnd({ params }: OnResizeStart): void {
 }
 
 function icon(c: Component) {
-  return () => h(NIcon, null, { default: () => h(c, { size: 16 }) })
+  return () => h(NIcon, { 'aria-hidden': 'true' }, { default: () => h(c, { size: 16 }) })
 }
 
 const menu = computed<DropdownOption[]>(() => {
@@ -226,7 +226,7 @@ function onMenu(key: string): void {
     :data-lod="lod"
   >
     <header class="frame__header">
-      <NIcon class="frame__icon" :size="15">
+      <NIcon aria-hidden="true" class="frame__icon" :size="15">
         <component :is="definition?.icon ?? CircleQuestionMark" />
       </NIcon>
       <span class="frame__title" :title="component.title">{{ component.title }}</span>
@@ -242,7 +242,7 @@ function onMenu(key: string): void {
             @click.stop="dataInfo.refresh()"
           >
             <template #icon>
-              <NIcon :size="12"><RotateCw /></NIcon>
+              <NIcon aria-hidden="true" :size="12"><RotateCw /></NIcon>
             </template>
             <span data-testid="frame-age">{{ dataAge }}</span>
           </NButton>
@@ -256,7 +256,7 @@ function onMenu(key: string): void {
       <NTooltip v-if="component.access.viewRestricted && editable">
         <template #trigger>
           <span class="frame__marker" data-testid="frame-hidden">
-            <NIcon :size="13"><EyeOff /></NIcon>
+            <NIcon aria-hidden="true" :size="13"><EyeOff /></NIcon>
           </span>
         </template>
         Hidden from everyone not on its access list.
@@ -264,7 +264,7 @@ function onMenu(key: string): void {
       <NTooltip v-if="(restricted && !component.access.viewRestricted) || !editable">
         <template #trigger>
           <span class="frame__marker" data-testid="frame-lock">
-            <NIcon :size="13"><Lock /></NIcon>
+            <NIcon aria-hidden="true" :size="13"><Lock /></NIcon>
             <span v-if="!editable">view only</span>
           </span>
         </template>
@@ -295,7 +295,7 @@ function onMenu(key: string): void {
           @click.stop
         >
           <template #icon>
-            <NIcon><Ellipsis /></NIcon>
+            <NIcon aria-hidden="true"><Ellipsis /></NIcon>
           </template>
         </NButton>
       </NDropdown>
@@ -303,16 +303,16 @@ function onMenu(key: string): void {
 
     <div class="frame__body" :class="{ 'nodrag nowheel': active }">
       <div v-if="!definition" class="frame__problem">
-        <NIcon :size="20"><CircleQuestionMark /></NIcon>
+        <NIcon aria-hidden="true" :size="20"><CircleQuestionMark /></NIcon>
         <span>Unknown component type “{{ component.type }}”</span>
       </div>
       <div v-else-if="crashed" class="frame__problem" data-testid="frame-crashed">
-        <NIcon :size="20"><TriangleExclamationPoint /></NIcon>
+        <NIcon aria-hidden="true" :size="20"><TriangleExclamationPoint /></NIcon>
         <span>This component failed to render: {{ crashed }}</span>
         <NButton size="tiny" @click="retry">Retry</NButton>
       </div>
       <div v-else-if="resolved && !resolved.ok" class="frame__problem" data-testid="frame-invalid">
-        <NIcon :size="20"><TriangleExclamationPoint /></NIcon>
+        <NIcon aria-hidden="true" :size="20"><TriangleExclamationPoint /></NIcon>
         <span>Invalid settings: {{ resolved.error }}</span>
         <NButton v-if="editable" size="tiny" @click="resetConfig">Reset to defaults</NButton>
       </div>
@@ -339,7 +339,7 @@ function onMenu(key: string): void {
         :data-dimension="f.dimension"
         :title="f.title"
       >
-        <NIcon :size="11"><Funnel /></NIcon>{{ f.label }}: {{ f.value }}
+        <NIcon aria-hidden="true" :size="11"><Funnel /></NIcon>{{ f.label }}: {{ f.value }}
       </span>
     </footer>
   </div>

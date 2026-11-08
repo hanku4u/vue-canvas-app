@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { NCard } from 'naive-ui'
 import { useUsageOverview } from '@/api/admin'
 import { STATUS, type ChartTokens } from '@/ui/vizPalette'
 import { formatCompact, formatDuration, formatPercent } from '@/ui/format'
+import AdminCard from './AdminCard.vue'
 import AdminChart from './AdminChart.vue'
 import AdminState from './AdminState.vue'
 import { baseAxes } from './chartOptions'
@@ -121,14 +121,14 @@ const mixChart = (tokens: ChartTokens) => ({
             :height="40 + 32 * Math.max(2, data.componentMix.length)"
           />
         </div>
-        <NCard size="small" title="Top canvases by queries">
+        <AdminCard size="small" title="Top canvases by queries">
           <ol class="top" data-testid="top-canvases">
             <li v-for="c in data.topCanvases" :key="c.id">
               <RouterLink :to="{ name: 'canvas', params: { id: c.id } }">{{ c.title }}</RouterLink>
               <span class="muted">{{ c.queries.toLocaleString() }} queries</span>
             </li>
           </ol>
-        </NCard>
+        </AdminCard>
       </template>
     </AdminState>
   </section>

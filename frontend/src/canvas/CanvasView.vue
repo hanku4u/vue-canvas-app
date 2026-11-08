@@ -31,6 +31,7 @@ import { provideLevelOfDetail, TINY_BELOW_ZOOM } from './lod'
 import { altPressed, useModifierKeys } from './modifiers'
 import { pasteInputs, readClipboard, toClipboard, writeClipboard } from './clipboard'
 import { PALETTE_MIME } from './palette'
+import ShortcutsDialog from './ShortcutsDialog.vue'
 import { useShortcuts, type Shortcut } from './shortcuts'
 import { loadViewport, saveViewport } from './viewportStorage'
 
@@ -519,51 +520,137 @@ const shortcuts = (): Shortcut[] => [
   {
     combo: 'mod+a',
     description: 'Select all',
+    group: 'Selection',
     handler: () => addSelectedNodes(getNodes.value),
   },
   {
     combo: 'escape',
     allowInComponents: true,
     description: 'Deactivate the active component, then clear the selection',
+    group: 'Selection',
     handler: () => {
       closeMenu()
       if (ui.activeId) ui.activate(null)
       else removeSelectedNodes(getSelectedNodes.value)
     },
   },
-  { combo: ['delete', 'backspace'], description: 'Delete selection', handler: deleteSelected },
-  { combo: 'mod+d', description: 'Duplicate selection', handler: duplicateSelected },
-  { combo: 'mod+g', description: 'Group selection', handler: groupSelected },
-  { combo: 'mod+shift+g', description: 'Ungroup', handler: ungroupSelected },
-  { combo: 'mod+c', description: 'Copy selection', handler: () => void copySelected() },
-  { combo: 'mod+x', description: 'Cut selection', handler: cutSelected },
-  { combo: 'mod+v', description: 'Paste', handler: paste },
-  { combo: 'mod+z', description: 'Undo', handler: () => void store.undo() },
+  {
+    combo: ['delete', 'backspace'],
+    description: 'Delete selection',
+    group: 'Edit',
+    handler: deleteSelected,
+  },
+  { combo: 'mod+d', description: 'Duplicate selection', group: 'Edit', handler: duplicateSelected },
+  { combo: 'mod+g', description: 'Group selection', group: 'Arrange', handler: groupSelected },
+  { combo: 'mod+shift+g', description: 'Ungroup', group: 'Arrange', handler: ungroupSelected },
+  {
+    combo: 'mod+c',
+    description: 'Copy selection',
+    group: 'Edit',
+    handler: () => void copySelected(),
+  },
+  { combo: 'mod+x', description: 'Cut selection', group: 'Edit', handler: cutSelected },
+  { combo: 'mod+v', description: 'Paste', group: 'Edit', handler: paste },
+  { combo: 'mod+z', description: 'Undo', group: 'Edit', handler: () => void store.undo() },
   {
     combo: ['mod+shift+z', 'mod+y'],
     description: 'Redo',
+    group: 'Edit',
     handler: () => void store.redo(),
   },
-  { combo: ['arrowup', 'shift+arrowup'], description: 'Nudge up', handler: nudge(0, -1) },
-  { combo: ['arrowdown', 'shift+arrowdown'], description: 'Nudge down', handler: nudge(0, 1) },
-  { combo: ['arrowleft', 'shift+arrowleft'], description: 'Nudge left', handler: nudge(-1, 0) },
-  { combo: ['arrowright', 'shift+arrowright'], description: 'Nudge right', handler: nudge(1, 0) },
-  { combo: ']', description: 'Bring to front', handler: () => store.bringToFront(selectedIds()) },
-  { combo: '[', description: 'Send to back', handler: () => store.sendToBack(selectedIds()) },
-  { combo: ['+', '='], description: 'Zoom in', handler: () => void zoomIn({ duration: 150 }) },
-  { combo: ['-', '_'], description: 'Zoom out', handler: () => void zoomOut({ duration: 150 }) },
-  { combo: 'shift+1', description: 'Zoom to fit', handler: () => fitAll() },
+  {
+    combo: ['arrowup', 'shift+arrowup'],
+    description: 'Nudge up',
+    group: 'Arrange',
+    handler: nudge(0, -1),
+  },
+  {
+    combo: ['arrowdown', 'shift+arrowdown'],
+    description: 'Nudge down',
+    group: 'Arrange',
+    handler: nudge(0, 1),
+  },
+  {
+    combo: ['arrowleft', 'shift+arrowleft'],
+    description: 'Nudge left',
+    group: 'Arrange',
+    handler: nudge(-1, 0),
+  },
+  {
+    combo: ['arrowright', 'shift+arrowright'],
+    description: 'Nudge right',
+    group: 'Arrange',
+    handler: nudge(1, 0),
+  },
+  {
+    combo: ']',
+    description: 'Bring to front',
+    group: 'Arrange',
+    handler: () => store.bringToFront(selectedIds()),
+  },
+  {
+    combo: '[',
+    description: 'Send to back',
+    group: 'Arrange',
+    handler: () => store.sendToBack(selectedIds()),
+  },
+  {
+    combo: ['+', '='],
+    description: 'Zoom in',
+    group: 'View',
+    handler: () => void zoomIn({ duration: 150 }),
+  },
+  {
+    combo: ['-', '_'],
+    description: 'Zoom out',
+    group: 'View',
+    handler: () => void zoomOut({ duration: 150 }),
+  },
+  { combo: 'shift+1', description: 'Zoom to fit', group: 'View', handler: () => fitAll() },
   {
     combo: 'shift+2',
     description: 'Zoom to selection',
+    group: 'View',
     handler: () => {
       const ids = selectedIds()
       if (ids.length) fitTo(ids, { maxZoom: 1.5, duration: 200 })
     },
   },
-  { combo: 'mod+0', description: 'Zoom to 100%', handler: () => void zoomTo(1, { duration: 150 }) },
+  {
+    combo: '?',
+    description: 'Show keyboard shortcuts',
+    group: 'Help',
+    allowInComponents: true,
+    handler: () => (showShortcuts.value = true),
+  },
+  {
+    combo: 'mod+0',
+    description: 'Zoom to 100%',
+    group: 'View',
+    handler: () => void zoomTo(1, { duration: 150 }),
+  },
 ]
 
+const showShortcuts = ref(false)
+
+// First-run tips on an empty canvas, until dismissed (this browser).
+const HINTS_KEY = 'ui.hints.dismissed'
+function readHintsDismissed(): boolean {
+  try {
+    return localStorage.getItem(HINTS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+const hintsDismissed = ref(readHintsDismissed())
+function dismissHints(): void {
+  hintsDismissed.value = true
+  try {
+    localStorage.setItem(HINTS_KEY, '1')
+  } catch {
+    // Storage unavailable: the tips come back next visit.
+  }
+}
 useShortcuts(shortcuts)
 
 const patternColor = computed(() => (isDark.value ? '#3f3f46' : '#cbd5e1'))
@@ -628,8 +715,10 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
         node-stroke-color="var(--app-text-muted)"
         aria-label="Canvas overview"
       />
-      <ZoomControls :flow-id="flowId" @fit="fitAll()" />
+      <ZoomControls :flow-id="flowId" @fit="fitAll()" @help="showShortcuts = true" />
     </VueFlow>
+
+    <ShortcutsDialog v-model:show="showShortcuts" :shortcuts="shortcuts()" />
 
     <div v-if="!nodes.length" class="canvas-view__empty" data-testid="canvas-empty">
       <template v-if="canEdit">
@@ -637,6 +726,17 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
         <p class="canvas-view__hint">
           Click a component in the palette, drag it onto the canvas, or right-click here.
         </p>
+        <ul v-if="!hintsDismissed" class="canvas-view__tips" data-testid="first-run-hints">
+          <li>Click a chart or table to use it; drag its header to move it.</li>
+          <li>Filters in the bar above apply to every component that follows them.</li>
+          <li>Select components and press <kbd>Ctrl/⌘ G</kbd> to group them.</li>
+          <li>Press <kbd>?</kbd> for all keyboard shortcuts.</li>
+          <li>
+            <button type="button" class="canvas-view__dismiss" @click="dismissHints">
+              Don't show these tips again
+            </button>
+          </li>
+        </ul>
       </template>
       <p v-else>This canvas is empty.</p>
     </div>
@@ -673,6 +773,37 @@ const minimapMask = computed(() => (isDark.value ? 'rgb(0 0 0 / 55%)' : 'rgb(240
   gap: 2px;
   pointer-events: none;
   color: var(--app-text-muted);
+}
+
+.canvas-view__tips {
+  margin: 12px 0 0;
+  padding: 10px 14px 10px 28px;
+  border: 1px dashed var(--app-border);
+  border-radius: 8px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  pointer-events: auto;
+}
+
+.canvas-view__tips li + li {
+  margin-top: 4px;
+}
+
+.canvas-view__tips kbd {
+  padding: 0 4px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.canvas-view__dismiss {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--app-primary);
+  font: inherit;
+  cursor: pointer;
 }
 
 .canvas-view__empty p {

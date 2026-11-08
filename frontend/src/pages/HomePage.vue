@@ -61,6 +61,17 @@ function onAction(action: CanvasCardAction, canvas: CanvasSummary): void {
       break
   }
 }
+
+// Dev only (mock API): generate the F13 benchmark canvas and open it.
+const isMockApi = import.meta.env.VITE_API_MOCK === '1'
+async function createBenchmark(): Promise<void> {
+  const [{ createBenchmarkCanvas }, { getDevKnoxId }] = await Promise.all([
+    import('@/mocks/devTools'),
+    import('@/api/devIdentity'),
+  ])
+  const id = await createBenchmarkCanvas(getDevKnoxId() ?? 'j.doe')
+  await router.push({ name: 'canvas', params: { id } })
+}
 </script>
 
 <template>
@@ -76,12 +87,21 @@ function onAction(action: CanvasCardAction, canvas: CanvasSummary): void {
           data-testid="canvas-search"
         >
           <template #prefix>
-            <NIcon><Search /></NIcon>
+            <NIcon aria-hidden="true"><Search /></NIcon>
           </template>
         </NInput>
+        <NButton
+          v-if="isMockApi"
+          quaternary
+          data-testid="create-benchmark"
+          title="Dev only: a canvas with 36 data components and 100 notes"
+          @click="createBenchmark"
+        >
+          Benchmark canvas (dev)
+        </NButton>
         <NButton type="primary" data-testid="new-canvas" @click="actions.startCreate">
           <template #icon>
-            <NIcon><Plus /></NIcon>
+            <NIcon aria-hidden="true"><Plus /></NIcon>
           </template>
           New canvas
         </NButton>

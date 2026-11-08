@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { NButton, NCard, NList, NListItem, NTag, useDialog, useMessage } from 'naive-ui'
+import { NButton, NList, NListItem, NTag, useDialog, useMessage } from 'naive-ui'
 import { adminApi, useAdminMutation, useUserAccess } from '@/api/admin'
 import type { UserRef } from '@/api/types'
 import UserPicker from '@/ui/sharing/UserPicker.vue'
 import { describeError } from '@/ui/useApiErrorNotifier'
+import AdminCard from './AdminCard.vue'
 import AdminState from './AdminState.vue'
 import { useQueryParam } from './useRange'
 
@@ -97,7 +98,7 @@ function confirmTransfer(): void {
         </div>
 
         <div class="access__grid">
-          <NCard size="small" :title="`Owns (${access.data.value.owned.length})`">
+          <AdminCard size="small" :title="`Owns (${access.data.value.owned.length})`">
             <NList v-if="access.data.value.owned.length" data-testid="access-owned">
               <NListItem v-for="c in access.data.value.owned" :key="c.id">
                 <RouterLink :to="{ name: 'canvas', params: { id: c.id } }">{{
@@ -106,9 +107,9 @@ function confirmTransfer(): void {
               </NListItem>
             </NList>
             <p v-else class="muted">No canvases.</p>
-          </NCard>
+          </AdminCard>
 
-          <NCard size="small" :title="`Shared with them (${access.data.value.shared.length})`">
+          <AdminCard size="small" :title="`Shared with them (${access.data.value.shared.length})`">
             <NList v-if="access.data.value.shared.length" data-testid="access-shared">
               <NListItem v-for="c in access.data.value.shared" :key="c.id">
                 <RouterLink :to="{ name: 'canvas', params: { id: c.id } }">{{
@@ -118,9 +119,9 @@ function confirmTransfer(): void {
               </NListItem>
             </NList>
             <p v-else class="muted">Nothing shared.</p>
-          </NCard>
+          </AdminCard>
 
-          <NCard
+          <AdminCard
             size="small"
             :title="`On component access lists (${access.data.value.acl.length})`"
           >
@@ -131,9 +132,12 @@ function confirmTransfer(): void {
               </NListItem>
             </NList>
             <p v-else class="muted">None.</p>
-          </NCard>
+          </AdminCard>
 
-          <NCard size="small" :title="`Hidden from them (${access.data.value.hiddenFrom.length})`">
+          <AdminCard
+            size="small"
+            :title="`Hidden from them (${access.data.value.hiddenFrom.length})`"
+          >
             <NList v-if="access.data.value.hiddenFrom.length" data-testid="access-hidden">
               <NListItem v-for="c in access.data.value.hiddenFrom" :key="c.componentId">
                 {{ c.componentTitle }}
@@ -141,7 +145,7 @@ function confirmTransfer(): void {
               </NListItem>
             </NList>
             <p v-else class="muted">Nothing hidden on canvases they can open.</p>
-          </NCard>
+          </AdminCard>
         </div>
 
         <h3 class="page__section">Bulk actions</h3>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NCard, NProgress } from 'naive-ui'
+import { NProgress } from 'naive-ui'
 import { useHealth } from '@/api/admin'
 import { formatBytes, formatDateTime, formatPercent, formatRelativeTime } from '@/ui/format'
 import { STATUS, type ChartTokens } from '@/ui/vizPalette'
+import AdminCard from './AdminCard.vue'
 import AdminChart from './AdminChart.vue'
 import AdminState from './AdminState.vue'
 import { baseAxes } from './chartOptions'
@@ -54,7 +55,7 @@ const historyChart = (tokens: ChartTokens) => ({
     >
       <template v-if="data">
         <div class="cards">
-          <NCard size="small" data-testid="health-data-api">
+          <AdminCard size="small" data-testid="health-data-api">
             <template #header>Data API</template>
             <template #header-extra><HealthStatus :status="data.dataApi.status" /></template>
             <dl>
@@ -72,8 +73,8 @@ const historyChart = (tokens: ChartTokens) => ({
                 </dd>
               </template>
             </dl>
-          </NCard>
-          <NCard size="small" data-testid="health-database">
+          </AdminCard>
+          <AdminCard size="small" data-testid="health-database">
             <template #header>PostgreSQL</template>
             <template #header-extra><HealthStatus :status="data.database.status" /></template>
             <dl>
@@ -82,8 +83,8 @@ const historyChart = (tokens: ChartTokens) => ({
                 {{ data.database.poolInUse }} of {{ data.database.poolSize }} connections in use
               </dd>
             </dl>
-          </NCard>
-          <NCard size="small" data-testid="health-cache">
+          </AdminCard>
+          <AdminCard size="small" data-testid="health-cache">
             <template #header>Query cache</template>
             <template #header-extra><HealthStatus :status="data.cache.status" /></template>
             <dl>
@@ -92,6 +93,7 @@ const historyChart = (tokens: ChartTokens) => ({
                 {{ formatBytes(data.cache.bytes) }} of {{ formatBytes(data.cache.maxBytes) }} ·
                 {{ data.cache.entries }} entries
                 <NProgress
+                  aria-label="Cache size used"
                   type="line"
                   :percentage="Math.round((100 * data.cache.bytes) / data.cache.maxBytes)"
                   :show-indicator="false"
@@ -103,8 +105,8 @@ const historyChart = (tokens: ChartTokens) => ({
               <dt>Evictions</dt>
               <dd>{{ data.cache.evictions.toLocaleString() }}</dd>
             </dl>
-          </NCard>
-          <NCard size="small" data-testid="health-concurrency">
+          </AdminCard>
+          <AdminCard size="small" data-testid="health-concurrency">
             <template #header>Upstream concurrency</template>
             <template #header-extra><HealthStatus :status="data.concurrency.status" /></template>
             <dl>
@@ -113,8 +115,8 @@ const historyChart = (tokens: ChartTokens) => ({
               <dt>Queued</dt>
               <dd>{{ data.concurrency.queued }}</dd>
             </dl>
-          </NCard>
-          <NCard size="small" data-testid="health-app">
+          </AdminCard>
+          <AdminCard size="small" data-testid="health-app">
             <template #header>App</template>
             <template #header-extra><HealthStatus :status="data.app.status" /></template>
             <dl>
@@ -128,7 +130,7 @@ const historyChart = (tokens: ChartTokens) => ({
                 errors
               </dd>
             </dl>
-          </NCard>
+          </AdminCard>
         </div>
         <AdminChart label="Data API checks, last 24 hours" :build="historyChart" :height="200" />
       </template>

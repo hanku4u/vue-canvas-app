@@ -26,7 +26,7 @@ function onDragStart(event: DragEvent, type: string): void {
           @click="emit('add', item.type)"
           @dragstart="onDragStart($event, item.type)"
         >
-          <NIcon :size="18"><component :is="item.icon" /></NIcon>
+          <NIcon aria-hidden="true" :size="18"><component :is="item.icon" /></NIcon>
           <span>{{ item.label }}</span>
         </button>
       </template>

@@ -1,8 +1,8 @@
 import { Sheet } from '@lucide/vue'
+import { lazyView } from '@/registry/lazy'
 import type { ComponentDefinition } from '@/registry/types'
 import TableInspector from './TableInspector.vue'
 import TablePreview from './TablePreview.vue'
-import TableView from './TableView.vue'
 import { tableConfigSchema, type TableConfig } from './schema'
 
 export const tableDefinition: ComponentDefinition<TableConfig> = {
@@ -16,7 +16,7 @@ export const tableDefinition: ComponentDefinition<TableConfig> = {
   configVersion: 1,
   defaultConfig: () => tableConfigSchema.parse({}),
   defaultTitle: () => 'Table',
-  view: TableView,
+  view: lazyView(() => import('./TableView.vue')),
   preview: TablePreview,
   inspector: TableInspector,
   dataKind: 'table',

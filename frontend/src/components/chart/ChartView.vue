@@ -191,7 +191,7 @@ const meta = computed(() => query.result.value?.meta)
               :class="{ 'is-alert': built.ooc > 0 }"
               data-testid="ooc-badge"
             >
-              <NIcon v-if="built.ooc > 0" :size="12" :color="STATUS.critical">
+              <NIcon aria-hidden="true" v-if="built.ooc > 0" :size="12" :color="STATUS.critical">
                 <TriangleExclamationPoint />
               </NIcon>
               {{ built.ooc }} OOC

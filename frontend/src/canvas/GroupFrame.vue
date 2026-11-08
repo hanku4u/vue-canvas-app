@@ -57,7 +57,7 @@ function onResizeEnd({ params }: OnResizeStart): void {
 }
 
 function icon(c: Component) {
-  return () => h(NIcon, null, { default: () => h(c, { size: 16 }) })
+  return () => h(NIcon, { 'aria-hidden': 'true' }, { default: () => h(c, { size: 16 }) })
 }
 
 const menu = computed<DropdownOption[]>(() => [
@@ -122,7 +122,9 @@ defineExpose({ startRename })
         @click.stop="toggleCollapsed"
       >
         <template #icon>
-          <NIcon><component :is="group.collapsed ? ChevronRight : ChevronDown" /></NIcon>
+          <NIcon aria-hidden="true"
+            ><component :is="group.collapsed ? ChevronRight : ChevronDown"
+          /></NIcon>
         </template>
       </NButton>
       <input
@@ -165,7 +167,7 @@ defineExpose({ startRename })
           @click.stop
         >
           <template #icon>
-            <NIcon><Ellipsis /></NIcon>
+            <NIcon aria-hidden="true"><Ellipsis /></NIcon>
           </template>
         </NButton>
       </NDropdown>

@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { Panel, useVueFlow } from '@vue-flow/core'
 import { NButton, NButtonGroup, NIcon, NTooltip } from 'naive-ui'
-import { Maximize, Minus, Plus } from '@lucide/vue'
+import { Keyboard, Maximize, Minus, Plus } from '@lucide/vue'
 
 const props = defineProps<{ flowId: string }>()
 
-const emit = defineEmits<{ fit: [] }>()
+const emit = defineEmits<{ fit: []; help: [] }>()
 
 const { viewport, zoomIn, zoomOut, zoomTo } = useVueFlow(props.flowId)
 
@@ -21,7 +21,7 @@ const duration = 150
         <template #trigger>
           <NButton aria-label="Zoom out" data-testid="zoom-out" @click="zoomOut({ duration })">
             <template #icon>
-              <NIcon><Minus /></NIcon>
+              <NIcon aria-hidden="true"><Minus /></NIcon>
             </template>
           </NButton>
         </template>
@@ -43,7 +43,7 @@ const duration = 150
         <template #trigger>
           <NButton aria-label="Zoom in" data-testid="zoom-in" @click="zoomIn({ duration })">
             <template #icon>
-              <NIcon><Plus /></NIcon>
+              <NIcon aria-hidden="true"><Plus /></NIcon>
             </template>
           </NButton>
         </template>
@@ -53,17 +53,37 @@ const duration = 150
         <template #trigger>
           <NButton aria-label="Zoom to fit" data-testid="zoom-fit" @click="emit('fit')">
             <template #icon>
-              <NIcon><Maximize /></NIcon>
+              <NIcon aria-hidden="true"><Maximize /></NIcon>
             </template>
           </NButton>
         </template>
         Zoom to fit (Shift + 1)
       </NTooltip>
     </NButtonGroup>
+    <NTooltip placement="top">
+      <template #trigger>
+        <NButton
+          size="small"
+          class="zoom-controls__help"
+          aria-label="Keyboard shortcuts"
+          data-testid="shortcuts-button"
+          @click="emit('help')"
+        >
+          <template #icon>
+            <NIcon aria-hidden="true"><Keyboard /></NIcon>
+          </template>
+        </NButton>
+      </template>
+      Keyboard shortcuts (?)
+    </NTooltip>
   </Panel>
 </template>
 
 <style scoped>
+.zoom-controls__help {
+  margin-left: 6px;
+}
+
 .zoom-controls__level {
   min-width: 58px;
   font-variant-numeric: tabular-nums;

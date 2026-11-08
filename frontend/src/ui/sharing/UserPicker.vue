@@ -32,6 +32,7 @@ function pick(knoxId: string | null): void {
     :options="options"
     :loading="users.isFetching.value"
     :placeholder="placeholder ?? 'Add a person…'"
+    :input-props="{ 'aria-label': placeholder ?? 'Add a person' }"
     data-testid="user-picker"
     @search="(q: string) => (search = q)"
     @update:value="pick"

@@ -127,6 +127,7 @@ function setParam(name: string, value: unknown): void {
       :options="options"
       :render-option="renderOption"
       placeholder="Choose a dataset"
+      :input-props="{ 'aria-label': 'Dataset' }"
       :disabled="!editable"
       data-testid="dataset-select"
       @update:value="setDataset"

@@ -56,9 +56,9 @@ function onClick(): void {
       >
         <template #icon>
           <NSpin v-if="status === 'saving' || status === 'pending'" :size="12" />
-          <NIcon v-else-if="status === 'saved'"><Check /></NIcon>
-          <NIcon v-else-if="status === 'offline'"><CloudOff /></NIcon>
-          <NIcon v-else><TriangleExclamationPoint /></NIcon>
+          <NIcon aria-hidden="true" v-else-if="status === 'saved'"><Check /></NIcon>
+          <NIcon aria-hidden="true" v-else-if="status === 'offline'"><CloudOff /></NIcon>
+          <NIcon aria-hidden="true" v-else><TriangleExclamationPoint /></NIcon>
         </template>
         {{ view.text }}
       </NButton>

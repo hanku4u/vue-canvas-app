@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { NButton, NCheckbox } from 'naive-ui'
 import { useDatasets } from '@/data/query'
 import type { ComponentViewProps } from '@/registry/types'
-import { orderedColumns } from './grid'
+import { orderedColumns } from './columns'
 import PublishRules from '../shared/PublishRules.vue'
 import type { TableConfig } from './schema'
 

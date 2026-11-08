@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import {
   NButton,
   NDatePicker,
@@ -13,10 +13,24 @@ import { useDimensionValues } from './dimensions'
 import { splitPasted, TIME_PRESETS } from './values'
 
 /** Edits one filter value: a searchable multi-select (with paste-a-list) or a time range. */
-const props = defineProps<{ dimension: FilterDimension; value: FilterValue | null }>()
+const props = defineProps<{
+  dimension: FilterDimension
+  value: FilterValue | null
+  /** Focus the picker when shown (keyboard users land in it). */
+  autofocus?: boolean
+}>()
 const emit = defineEmits<{ change: [value: FilterValue | null] }>()
 
 const search = ref('')
+const select = ref<InstanceType<typeof NSelect> | null>(null)
+const root = ref<HTMLDivElement | null>(null)
+
+onMounted(async () => {
+  if (!props.autofocus) return
+  await nextTick()
+  if (select.value) select.value.focusInput()
+  else root.value?.querySelector<HTMLElement>('input, button')?.focus()
+})
 const values = useDimensionValues(
   () => props.dimension.id,
   search,
@@ -66,7 +80,7 @@ function startCustom(): void {
 </script>
 
 <template>
-  <div class="filter-editor" :data-dimension="dimension.id" data-testid="filter-editor">
+  <div ref="root" class="filter-editor" :data-dimension="dimension.id" data-testid="filter-editor">
     <template v-if="dimension.type === 'time_range'">
       <NRadioGroup
         size="small"
@@ -87,6 +101,7 @@ function startCustom(): void {
 
     <div v-else class="filter-editor__list" @paste.capture="onPaste">
       <NSelect
+        ref="select"
         size="small"
         multiple
         filterable
@@ -97,6 +112,7 @@ function startCustom(): void {
         :options="options"
         :placeholder="dimension.hasValues ? 'Search or paste a list' : 'Type or paste values'"
         :max-tag-count="6"
+        :input-props="{ 'aria-label': `${dimension.label} values` }"
         data-testid="filter-values"
         @search="(q: string) => (search = q)"
         @update:value="(v: string[]) => emit('change', v.length ? v : null)"

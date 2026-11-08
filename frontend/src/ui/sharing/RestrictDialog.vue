@@ -119,6 +119,7 @@ async function save(): Promise<void> {
                 size="small"
                 :value="entry.access"
                 :options="ACCESS"
+                :input-props="{ 'aria-label': `Access for ${entry.knoxId}` }"
                 @update:value="
                   (v: 'view' | 'edit') =>
                     (acl = acl.map((a) => (a.knoxId === entry.knoxId ? { ...a, access: v } : a)))

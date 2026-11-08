@@ -15,6 +15,7 @@
   --app-text-muted: #64748b;
   --app-primary: #4f46e5;
   --app-danger: #d03050;
+  --app-link: #4338ca;
   --note-default: #ffffff;
   --note-yellow: #fff7c2;
   --note-blue: #dbeafe;
@@ -30,6 +31,7 @@
   --app-text-muted: #a1a1aa;
   --app-primary: #818cf8;
   --app-danger: #e88080;
+  --app-link: #a5b4fc;
   --note-default: #18181c;
   --note-yellow: #3a3518;
   --note-blue: #172338;
@@ -81,4 +83,9 @@ body {
 
 .menu-label__check {
   color: var(--app-primary);
+}
+
+/* Links follow the theme (the browser default blue is unreadable on dark surfaces). */
+a {
+  color: var(--app-link);
 }

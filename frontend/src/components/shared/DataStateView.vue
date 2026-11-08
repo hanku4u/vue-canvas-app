@@ -37,11 +37,11 @@ const paramSummary = computed(() =>
 <template>
   <div class="data-state" :data-state="state" data-testid="data-state">
     <div v-if="state === 'unconfigured'" class="data-state__message">
-      <NIcon :size="22"><Database /></NIcon>
+      <NIcon aria-hidden="true" :size="22"><Database /></NIcon>
       <span>Choose a dataset in the inspector.</span>
     </div>
     <div v-else-if="state === 'missing'" class="data-state__message">
-      <NIcon :size="22"><Database /></NIcon>
+      <NIcon aria-hidden="true" :size="22"><Database /></NIcon>
       <span>
         Set
         <strong>{{ (missing ?? []).map((p) => p.label ?? p.name).join(', ') }}</strong>
@@ -56,7 +56,7 @@ const paramSummary = computed(() =>
       class="data-state__message is-error"
       data-testid="data-error"
     >
-      <NIcon :size="22"><TriangleExclamationPoint /></NIcon>
+      <NIcon aria-hidden="true" :size="22"><TriangleExclamationPoint /></NIcon>
       <span>{{ errorInfo.message }}</span>
       <code class="data-state__code">
         {{ errorInfo.code
@@ -67,7 +67,7 @@ const paramSummary = computed(() =>
       </NButton>
     </div>
     <div v-else-if="state === 'empty'" class="data-state__message" data-testid="data-empty">
-      <NIcon :size="22"><Database /></NIcon>
+      <NIcon aria-hidden="true" :size="22"><Database /></NIcon>
       <span>No data for the current parameters.</span>
       <small v-if="paramSummary" class="data-state__params">{{ paramSummary }}</small>
     </div>

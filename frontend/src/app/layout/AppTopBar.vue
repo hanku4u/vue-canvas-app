@@ -15,7 +15,7 @@ const isMockApi = import.meta.env.VITE_API_MOCK === '1'
     <div class="top-bar__left">
       <slot name="left">
         <RouterLink to="/" class="top-bar__brand">
-          <NIcon :size="20"><LayoutDashboard /></NIcon>
+          <NIcon aria-hidden="true" :size="20"><LayoutDashboard /></NIcon>
           <span>{{ APP_NAME }}</span>
         </RouterLink>
       </slot>
@@ -29,7 +29,7 @@ const isMockApi = import.meta.env.VITE_API_MOCK === '1'
       <RouterLink v-if="me.data.value?.isAdmin" v-slot="{ navigate }" to="/admin" custom>
         <NButton quaternary size="small" data-testid="admin-link" @click="navigate">
           <template #icon>
-            <NIcon><Shield /></NIcon>
+            <NIcon aria-hidden="true"><Shield /></NIcon>
           </template>
           Admin
         </NButton>

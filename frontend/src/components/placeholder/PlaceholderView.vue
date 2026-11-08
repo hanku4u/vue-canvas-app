@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import type { ComponentViewProps } from '@/registry/types'
 
-defineProps<ComponentViewProps>()
+const props = defineProps<ComponentViewProps>()
+
+// Dev/test hook: `window.__crashComponents = ['<id>']` makes this view throw, to exercise the
+// per-component error boundary (ComponentFrame). Stripped from production builds.
+if (import.meta.env.DEV) {
+  const crash = (globalThis as { __crashComponents?: string[] }).__crashComponents
+  if (crash?.includes(props.component.id)) throw new Error('Simulated render failure')
+}
 </script>
 
 <template>

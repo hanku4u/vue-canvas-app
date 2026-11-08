@@ -4,6 +4,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 
 import App from './App.vue'
 import router from './router'
+import { installA11yFixes } from './app/a11yFixes'
 import { initColorScheme } from './app/colorScheme'
 import { queryClient } from './app/queryClient'
 import './app/styles.css'
@@ -29,6 +30,7 @@ async function bootstrap(): Promise<void> {
   app.use(router)
   app.use(VueQueryPlugin, { queryClient })
   app.mount('#app')
+  installA11yFixes()
 }
 
 void bootstrap()

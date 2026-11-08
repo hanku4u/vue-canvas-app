@@ -55,7 +55,7 @@ const toggleIcon = computed(() => {
             @click="collapsed = !collapsed"
           >
             <template #icon>
-              <NIcon><component :is="toggleIcon" /></NIcon>
+              <NIcon aria-hidden="true"><component :is="toggleIcon" /></NIcon>
             </template>
           </NButton>
         </template>

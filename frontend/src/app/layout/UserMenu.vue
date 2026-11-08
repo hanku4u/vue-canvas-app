@@ -27,7 +27,7 @@ const initials = computed(() => {
 })
 
 function icon(component: Component) {
-  return () => h(NIcon, null, { default: () => h(component, { size: 16 }) })
+  return () => h(NIcon, { 'aria-hidden': 'true' }, { default: () => h(component, { size: 16 }) })
 }
 
 const schemes: { key: ColorSchemePreference; label: string; icon: Component }[] = [

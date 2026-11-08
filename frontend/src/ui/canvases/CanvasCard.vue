@@ -13,7 +13,7 @@ const props = defineProps<{ canvas: CanvasSummary; showOwner?: boolean }>()
 const emit = defineEmits<{ action: [action: CanvasCardAction, canvas: CanvasSummary] }>()
 
 function icon(component: Component) {
-  return () => h(NIcon, null, { default: () => h(component, { size: 16 }) })
+  return () => h(NIcon, { 'aria-hidden': 'true' }, { default: () => h(component, { size: 16 }) })
 }
 
 const menu = computed<DropdownOption[]>(() => {
@@ -67,7 +67,7 @@ function open(): void {
           @click.stop
         >
           <template #icon>
-            <NIcon><Ellipsis /></NIcon>
+            <NIcon aria-hidden="true"><Ellipsis /></NIcon>
           </template>
         </NButton>
       </NDropdown>

@@ -150,6 +150,7 @@ function chipTitle(chip: Chip): string {
       <FilterValueEditor
         :dimension="chip.dimension"
         :value="chip.value"
+        autofocus
         @change="(v) => setValue(chip.dimension.id, v)"
       />
     </NPopover>
@@ -171,6 +172,7 @@ function chipTitle(chip: Chip): string {
       <FilterValueEditor
         :dimension="adding"
         :value="null"
+        autofocus
         @change="(v) => (setValue(adding!.id, v), (open = adding!.id), (adding = null))"
       />
     </NPopover>
@@ -191,7 +193,7 @@ function chipTitle(chip: Chip): string {
         @click.stop
       >
         <template #icon>
-          <NIcon><Plus /></NIcon>
+          <NIcon aria-hidden="true"><Plus /></NIcon>
         </template>
         <template v-if="!compact">Filter</template>
       </NButton>

@@ -131,6 +131,10 @@ Undo and redo cover only your own edits in this session. Undo of an edit that so
 
 Right-click a component, a group or empty canvas for context actions (the same as the shortcuts above, plus "Restrict access…" for owners and admins).
 
+### Help
+
+Press `?` (or the keyboard button by the zoom controls) for a cheat sheet built from the registered shortcuts, plus the mouse gestures. An empty canvas shows a few first-run tips until they're dismissed (remembered per browser).
+
 ## Filters
 
 The filter bar and group headers show filter chips. Full resolution rules are in [data-layer.md](data-layer.md#filters).

@@ -144,7 +144,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
 // ---------------------------------------------------------------------------
 
 function icon(component: Component) {
-  return () => h(NIcon, null, { default: () => h(component, { size: 16 }) })
+  return () => h(NIcon, { 'aria-hidden': 'true' }, { default: () => h(component, { size: 16 }) })
 }
 
 const isMockApi = import.meta.env.VITE_API_MOCK === '1'
@@ -210,7 +210,7 @@ function back(): void {
     <template #top-left>
       <NButton quaternary circle aria-label="Back to canvases" @click="back">
         <template #icon>
-          <NIcon><ArrowLeft /></NIcon>
+          <NIcon aria-hidden="true"><ArrowLeft /></NIcon>
         </template>
       </NButton>
       <template v-if="canvas.data.value">
@@ -233,7 +233,7 @@ function back(): void {
           @click="showShare = true"
         >
           <template #icon>
-            <NIcon><Share2 /></NIcon>
+            <NIcon aria-hidden="true"><Share2 /></NIcon>
           </template>
           Share
         </NButton>
@@ -245,7 +245,7 @@ function back(): void {
           @click="onMenu('duplicate')"
         >
           <template #icon>
-            <NIcon><Copy /></NIcon>
+            <NIcon aria-hidden="true"><Copy /></NIcon>
           </template>
           Duplicate to my canvases
         </NButton>
@@ -263,7 +263,7 @@ function back(): void {
                   @click="store.undo()"
                 >
                   <template #icon>
-                    <NIcon><Undo2 /></NIcon>
+                    <NIcon aria-hidden="true"><Undo2 /></NIcon>
                   </template>
                 </NButton>
               </template>
@@ -281,7 +281,7 @@ function back(): void {
                   @click="store.redo()"
                 >
                   <template #icon>
-                    <NIcon><Redo2 /></NIcon>
+                    <NIcon aria-hidden="true"><Redo2 /></NIcon>
                   </template>
                 </NButton>
               </template>
@@ -307,7 +307,7 @@ function back(): void {
       >
         <NButton quaternary circle aria-label="Canvas actions" data-testid="canvas-menu">
           <template #icon>
-            <NIcon><Ellipsis /></NIcon>
+            <NIcon aria-hidden="true"><Ellipsis /></NIcon>
           </template>
         </NButton>
       </NDropdown>
