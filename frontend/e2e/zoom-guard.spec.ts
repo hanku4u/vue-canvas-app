@@ -44,7 +44,7 @@ test('pinch and Ctrl+wheel zoom the canvas, never the page', async ({ page }) =>
   await notes.click({ position: { x: 100, y: 120 } })
   const box = (await notes.boundingBox())!
   await ctrlWheel(page, box.x + 100, box.y + 120, 200)
-  // One wheel notch is one 10% step, not a jump.
+  // Two wheel notches (200 px) with Ctrl held: two 5% steps, not a jump.
   await expect(zoomLevel(page)).toHaveText('91%')
   expect(await prevented(page)).toBe(true)
 
