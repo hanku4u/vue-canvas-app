@@ -135,7 +135,13 @@ test('★ ET-03 investigation: canvas filters, SPC, lot table → wafer gallery,
   await openCanvas(other, page.url())
   await expect(chip(other, 'time_range')).toContainText('Last 30 days')
   await expect(chip(other, 'tool_id')).toContainText('ET-03')
-  await expect(other.getByTestId('ooc-badge')).toHaveText(ooc!)
+  // Same query; "last 30 days" resolves to the minute, so if a minute boundary passed
+  // between the two tabs the window shifted slightly: allow a point or two of drift.
+  const count = (text: string | null) => Number(text?.replace(/\D/g, ''))
+  await expect(other.getByTestId('ooc-badge')).toHaveText(/\d+ OOC/)
+  expect(
+    Math.abs(count(await other.getByTestId('ooc-badge').textContent()) - count(ooc)),
+  ).toBeLessThanOrEqual(2)
 })
 
 test('save as default, reset, and per-component unlinking', async ({ page }) => {
