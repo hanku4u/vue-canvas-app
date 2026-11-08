@@ -47,7 +47,6 @@ test('pinch and Ctrl+wheel zoom the canvas, never the page', async ({ page }) =>
   // One wheel notch is one 10% step, not a jump.
   await expect(zoomLevel(page)).toHaveText('91%')
   expect(await prevented(page)).toBe(true)
-  const afterComponent = await zoomLevel(page).textContent()
 
   // On the bare canvas.
   await ctrlWheel(page, pane.x + 40, pane.y + pane.height - 60, -200)
