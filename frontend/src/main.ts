@@ -1,13 +1,6 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import { VueQueryPlugin } from '@tanstack/vue-query'
-
-import App from './App.vue'
-import router from './router'
-import { installA11yFixes } from './app/a11yFixes'
-import { initColorScheme } from './app/colorScheme'
-import { queryClient } from './app/queryClient'
-import './app/styles.css'
+// Entry point for development (npm run dev) and the prebuilt app in the npm package.
+import type { FabCanvasConfig } from './app/config'
+import { createFabCanvasApp, installA11yFixes } from './app/createFabCanvasApp'
 
 async function enableMocking(): Promise<void> {
   if (import.meta.env.VITE_API_MOCK !== '1') return
@@ -15,20 +8,25 @@ async function enableMocking(): Promise<void> {
   await startMockApi()
 }
 
+/**
+ * The prebuilt app reads `config.json` next to index.html (docs/packaging.md). The URL
+ * path it's served under comes from `<base href>` unless config.json sets `basePath`.
+ */
+async function loadRuntimeConfig(): Promise<FabCanvasConfig> {
+  if (import.meta.env.DEV) return {}
+  const basePath = new URL(document.baseURI).pathname
+  try {
+    const response = await fetch(new URL('config.json', document.baseURI), { cache: 'no-store' })
+    const config = response.ok ? ((await response.json()) as FabCanvasConfig) : {}
+    return { basePath, ...config }
+  } catch {
+    return { basePath }
+  }
+}
+
 async function bootstrap(): Promise<void> {
   await enableMocking()
-  initColorScheme()
-
-  // Naive UI injects its styles at runtime; this meta tag keeps them ahead of app CSS
-  // so our own stylesheets can override component styles where needed.
-  const meta = document.createElement('meta')
-  meta.name = 'naive-ui-style'
-  document.head.prepend(meta)
-
-  const app = createApp(App)
-  app.use(createPinia())
-  app.use(router)
-  app.use(VueQueryPlugin, { queryClient })
+  const app = createFabCanvasApp(await loadRuntimeConfig())
   app.mount('#app')
   installA11yFixes()
 }

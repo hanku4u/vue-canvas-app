@@ -40,3 +40,7 @@ __screenshots__/
 
 test-results/
 playwright-report/
+
+# Built npm package (npm run build:package)
+/package
+*.tgz

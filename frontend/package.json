@@ -1,6 +1,6 @@
 {
   "name": "vue-canvas-app-frontend",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,9 @@
     "test:unit:run": "vitest run",
     "lint:check": "oxlint . && eslint .",
     "format:check": "prettier --check src/ e2e/",
-    "bench": "BENCH=1 playwright test --grep @bench --reporter=line"
+    "bench": "BENCH=1 playwright test --grep @bench --reporter=line",
+    "build:package": "node scripts/build-package.mjs",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.70.0",
@@ -53,6 +55,7 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.9.1",
+    "ajv": "^8.20.0",
     "concurrently": "^10.0.7",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
@@ -70,7 +73,8 @@
     "vite-plugin-vue-devtools": "^8.2.1",
     "vitest": "^4.1.11",
     "vue-eslint-parser": "^10.4.1",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "yaml": "^2.9.1"
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"
@@ -79,5 +83,15 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "fabCanvasPackage": {
+    "name": "fab-canvas",
+    "license": "UNLICENSED",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/hanku4u/vue-canvas-app.git",
+      "directory": "frontend"
+    },
+    "homepage": "https://github.com/hanku4u/vue-canvas-app#readme"
   }
 }

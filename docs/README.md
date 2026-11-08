@@ -15,6 +15,7 @@ Planning and design docs for **vue-canvas-app**, an infinite-canvas workspace fo
 | [permissions.md](permissions.md) | Identity, roles, canvas sharing, per-component restrictions, enforcement |
 | [admin.md](admin.md) | Admin screen: permissions management, usage and health |
 | [api.md](api.md) | Frontend ↔ FastAPI contract: endpoints, payloads, errors |
+| [packaging.md](packaging.md) | The `fab-canvas` npm package: contents, runtime config, the API contract checks, releasing |
 | [mock-data-api.md](mock-data-api.md) | The local dummy data API used in place of the real one: fake fab model, planted excursion, endpoints |
 | [design-decisions.md](design-decisions.md) | Decision log with alternatives and reasoning |
 | [open-questions.md](open-questions.md) | Unresolved questions and the assumptions in use until they're answered |

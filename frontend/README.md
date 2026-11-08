@@ -25,6 +25,8 @@ In development, `/api` is served by an **in-browser mock of the FastAPI backend*
 | `npx playwright test` | E2E against the dev server with MSW (first run: `npx playwright install chromium`), including axe accessibility checks |
 | `npm run bench` | Performance benchmark (36 data components + 100 notes); prints load, query fan-out, fps and heap |
 | `npm run build` | Type-check + production build (MSW is excluded from production builds) |
+| `npm run build:package` | Build the `fab-canvas` npm package into `package/` (docs/packaging.md) |
+| `npm run verify:package` | Install the packed package in a scratch project and smoke-test both forms |
 
 ## Layout
 

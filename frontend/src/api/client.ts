@@ -1,7 +1,6 @@
 import type { ApiErrorBody } from './types'
+import { getConfig } from '@/app/config'
 import { getDevKnoxId } from './devIdentity'
-
-export const API_BASE = '/api'
 
 /** Error returned by the API, carrying the error envelope from docs/api.md#errors. */
 export class ApiError extends Error {
@@ -41,7 +40,8 @@ export interface RequestOptions {
 function apiUrl(path: string): string {
   // Absolute URL so the client also works under Node (unit tests), where fetch needs one.
   const origin = globalThis.location?.origin ?? 'http://localhost'
-  return new URL(`${API_BASE}${path}`, origin).toString()
+  // apiBase may be a path on this origin or an absolute URL (runtime config).
+  return new URL(`${getConfig().apiBase}${path}`, origin).toString()
 }
 
 function parseJson(text: string): unknown {
@@ -66,7 +66,12 @@ export async function apiFetchResponse(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<Response> {
-  const headers: Record<string, string> = { accept: 'application/json', ...options.headers }
+  const config = getConfig()
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    ...config.headers,
+    ...options.headers,
+  }
   if (body !== undefined) headers['content-type'] = 'application/json'
   const devKnoxId = getDevKnoxId()
   if (devKnoxId && !('x-knox-id' in headers)) headers['x-knox-id'] = devKnoxId
@@ -78,6 +83,7 @@ export async function apiFetchResponse(
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: options.signal,
+      credentials: config.credentials,
     })
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause

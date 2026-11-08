@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router'
 import { NButton, NIcon, NTag } from 'naive-ui'
 import { LayoutDashboard, Shield } from '@lucide/vue'
 import { useMe } from '@/api/me'
-import { APP_NAME } from '@/app/config'
+import { appName } from '@/app/config'
 import UserMenu from './UserMenu.vue'
 
 const me = useMe()
@@ -16,7 +16,7 @@ const isMockApi = import.meta.env.VITE_API_MOCK === '1'
       <slot name="left">
         <RouterLink to="/" class="top-bar__brand">
           <NIcon aria-hidden="true" :size="20"><LayoutDashboard /></NIcon>
-          <span>{{ APP_NAME }}</span>
+          <span>{{ appName() }}</span>
         </RouterLink>
       </slot>
     </div>
